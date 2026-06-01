@@ -66,7 +66,7 @@ export class ProductService {
       );
 
       await queryRunner.manager.save(product);
-      await this.productMediaService.saveMedia(product, files);
+      await this.productMediaService.saveMedia(product, files, queryRunner.manager);
 
       await queryRunner.commitTransaction();
 
@@ -277,12 +277,12 @@ export class ProductService {
       // 삭제 미디어 처리
       if (request.deleteMediaIds && request.deleteMediaIds.length > 0) {
         await this.productMediaService.validateMinimumMediaCount(productId, request.deleteMediaIds, files);
-        await this.productMediaService.deleteMediaByIds(productId, request.deleteMediaIds);
+        await this.productMediaService.deleteMediaByIds(productId, request.deleteMediaIds, queryRunner.manager);
       }
 
       // 신규 미디어 추가
       if (files && files.length > 0) {
-        await this.productMediaService.saveMedia(product, files);
+        await this.productMediaService.saveMedia(product, files, queryRunner.manager);
       }
 
       await queryRunner.commitTransaction();
@@ -320,7 +320,7 @@ export class ProductService {
 
     try {
       // 미디어, 입찰, 찜 삭제 후 상품 삭제
-      await this.productMediaService.deleteAllByProductId(productId);
+      await this.productMediaService.deleteAllByProductId(productId, queryRunner.manager);
       await queryRunner.manager.delete(Bid, { product: { id: productId } });
       await queryRunner.manager.delete(Wish, { product: { id: productId } });
       await queryRunner.manager.remove(product);
