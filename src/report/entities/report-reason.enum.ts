@@ -1,0 +1,7 @@
+export enum ReportReason {
+  SPAM = 'SPAM',
+  ABUSE = 'ABUSE',
+  FRAUD = 'FRAUD',
+  INAPPROPRIATE_CONTENT = 'INAPPROPRIATE_CONTENT',
+  ETC = 'ETC',
+}

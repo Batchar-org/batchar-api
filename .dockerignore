@@ -1,0 +1,16 @@
+# 이미지에 넣을 필요 없는 것들 (빌드 컨텍스트에서 제외 → 빌드 빠르고 가벼움)
+node_modules
+dist
+.git
+.gitignore
+
+# 비밀값: 이미지에 절대 굽지 않음 (런타임 env는 docker-compose가 주입)
+.env
+.env.legacy
+
+# 기타
+*.log
+coverage
+.DS_Store
+.claude
+test
