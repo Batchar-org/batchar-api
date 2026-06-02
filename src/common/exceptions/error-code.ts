@@ -79,6 +79,12 @@ export const ErrorCode = {
   // Notification
   INVALID_PUSH_TOKEN: { httpStatus: HttpStatus.BAD_REQUEST, message: '유효하지 않은 푸시 토큰입니다.' },
   NOTIFICATION_NOT_FOUND: { httpStatus: HttpStatus.NOT_FOUND, message: '알림을 찾을 수 없습니다.' },
+
+  // Fertility
+  FERTILITY_ALREADY_GIVEN: { httpStatus: HttpStatus.CONFLICT, message: '이 거래에서는 이미 적용했습니다.' },
+  FERTILITY_MAX_REACHED: { httpStatus: HttpStatus.BAD_REQUEST, message: '상대방의 밭이 가득 비옥해 더 이상 물을 줄 수 없습니다.' },
+  FERTILITY_MIN_REACHED: { httpStatus: HttpStatus.BAD_REQUEST, message: '상대방의 밭이 메말라 더 이상 산성비를 내릴 수 없습니다.' },
+  FERTILITY_TRADE_NOT_COMPLETED: { httpStatus: HttpStatus.BAD_REQUEST, message: '거래가 완료된 후에만 평가할 수 있습니다.' },
 } as const;
 
 export type ErrorCodeKey = keyof typeof ErrorCode;

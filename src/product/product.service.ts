@@ -225,6 +225,7 @@ export class ProductService {
       sellerId: product.seller.id,
       sellerName: product.seller.name,
       sellerProfileImageUrl: product.seller.profileImageUrl,
+      sellerFertility: Number(product.seller.fertility),
       winnerName: product.winner ? product.winner.name : null,
       winnerProfileImageUrl: product.winner ? product.winner.profileImageUrl : null,
       title: product.title,

@@ -53,6 +53,8 @@ export class ProductDetailResponse {
 
   sellerProfileImageUrl: string | null;
 
+  sellerFertility: number;
+
   winnerName: string | null;
 
   winnerProfileImageUrl: string | null;
