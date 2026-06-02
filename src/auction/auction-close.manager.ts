@@ -72,7 +72,12 @@ export class AuctionCloseManager {
       await queryRunner.manager.save(highestBid);
 
       // 낙찰 채팅방 생성
-      await this.chatService.generateChatRoom(lockedProduct, lockedProduct.seller, highestBid.bidder);
+      await this.chatService.generateChatRoom(
+        lockedProduct,
+        lockedProduct.seller,
+        highestBid.bidder,
+        queryRunner.manager,
+      );
 
       // 패찰자(낙찰자 제외) 목록을 커밋 전에 수집
       const winnerId = Number(highestBid.bidder.id);
@@ -149,7 +154,12 @@ export class AuctionCloseManager {
       await queryRunner.manager.save(lockedProduct);
       await queryRunner.manager.save(highestBid);
 
-      await this.chatService.generateChatRoom(lockedProduct, lockedProduct.seller, highestBid.bidder);
+      await this.chatService.generateChatRoom(
+        lockedProduct,
+        lockedProduct.seller,
+        highestBid.bidder,
+        queryRunner.manager,
+      );
 
       // 패찰자(낙찰자 제외) 목록을 커밋 전에 수집
       const winnerId = Number(highestBid.bidder.id);

@@ -1,6 +1,6 @@
 import { Injectable, Inject, forwardRef, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not } from 'typeorm';
+import { Repository, Not, EntityManager } from 'typeorm';
 import { ChatRoom } from './entities/chat-room.entity';
 import { ChatMessage } from './entities/chat-message.entity';
 import { Product } from '../product/entities/product.entity';
@@ -73,9 +73,16 @@ export class ChatService {
     }
   }
 
-  async generateChatRoom(product: Product, seller: User, bidder: User): Promise<void> {
+  // 경매 마감 트랜잭션 안에서 호출되므로 같은 EntityManager로 저장한다.
+  // (별도 커넥션으로 INSERT하면 상품 row의 pessimistic_write 락과 충돌해 lock wait timeout 발생)
+  async generateChatRoom(
+    product: Product,
+    seller: User,
+    bidder: User,
+    manager: EntityManager,
+  ): Promise<void> {
     const chatRoom = ChatRoom.createChatRoom(product, seller, bidder);
-    await this.chatRoomRepository.save(chatRoom);
+    await manager.save(chatRoom);
   }
 
   async getChatLists(userId: number): Promise<ChatListResponse[]> {
