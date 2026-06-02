@@ -12,6 +12,8 @@ export class UserMeResponse {
 
   profileImageUrl: string | null;
 
+  fertility: number;
+
   static from(user: User): UserMeResponse {
     const res = new UserMeResponse();
     res.id = user.id;
@@ -19,6 +21,7 @@ export class UserMeResponse {
     res.name = user.name;
     res.address = user.address;
     res.profileImageUrl = user.profileImageUrl;
+    res.fertility = Number(user.fertility);
     return res;
   }
 }

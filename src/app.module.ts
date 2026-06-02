@@ -18,6 +18,7 @@ import { WebSocketModule } from './websocket/websocket.module';
 import { BlockModule } from './block/block.module';
 import { ReportModule } from './report/report.module';
 import { AdminModule } from './admin/admin.module';
+import { FertilityModule } from './fertility/fertility.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { AdminModule } from './admin/admin.module';
     BlockModule,
     ReportModule,
     AdminModule,
+    FertilityModule,
   ],
   controllers: [AppController],
   providers: [AppService],
