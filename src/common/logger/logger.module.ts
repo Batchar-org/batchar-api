@@ -4,6 +4,12 @@ import { randomUUID } from 'node:crypto';
 
 const isProd = process.env.NODE_ENV === 'production';
 
+// 사람이 읽기 좋은 pretty 포맷을 쓸지 여부.
+// - 로컬(개발)에서는 기본 pretty.
+// - 운영 이미지는 NODE_ENV=production이라 JSON이지만, 도커로 로컬 구동할 때
+//   LOG_PRETTY=true를 주면 컨테이너 로그(docker logs)도 pretty로 볼 수 있다.
+const prettyLogs = !isProd || process.env.LOG_PRETTY === 'true';
+
 /**
  * 전역 HTTP 요청 로깅 설정 (nestjs-pino 기반).
  * - 요청마다 고유 ID(request id)를 만들어 응답의 `X-Request-Id` 헤더로 내려준다.
@@ -20,6 +26,11 @@ const isProd = process.env.NODE_ENV === 'production';
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.LOG_LEVEL || (isProd ? 'info' : 'debug'),
+
+        // 헬스체크(GET /)는 도커가 10초마다 호출 → 로그를 도배하므로 기록에서 제외.
+        autoLogging: {
+          ignore: (req) => req.url === '/',
+        },
 
         // 요청 ID: 외부에서 X-Request-Id를 주면(형식 검증 후) 그대로 쓰고, 없으면 새로 발급.
         // 발급한 ID를 응답 헤더에 실어 프론트엔드가 확인할 수 있게 한다.
@@ -64,10 +75,9 @@ const isProd = process.env.NODE_ENV === 'production';
           }),
         },
 
-        // 개발: 컬러·한 줄 사람이 읽기 좋은 포맷 / 운영: JSON(transport 미사용).
-        transport: isProd
-          ? undefined
-          : {
+        // pretty: 컬러·한 줄 사람이 읽기 좋은 포맷 / 그 외: JSON(transport 미사용).
+        transport: prettyLogs
+          ? {
               target: 'pino-pretty',
               options: {
                 singleLine: true,
@@ -75,7 +85,8 @@ const isProd = process.env.NODE_ENV === 'production';
                 translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
                 ignore: 'pid,hostname',
               },
-            },
+            }
+          : undefined,
       },
     }),
   ],

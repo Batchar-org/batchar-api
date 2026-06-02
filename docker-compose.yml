@@ -9,6 +9,9 @@ services:
     env_file: .env # JWT / S3 / MAIL / MYSQL_USER 등 모든 값 주입
     environment:
       TZ: Asia/Seoul
+      # 로컬 도커 구동 시 컨테이너 로그(docker logs)를 사람이 읽기 좋은 pretty 포맷으로.
+      # (실제 배포 이미지는 이 값이 없으므로 JSON 그대로 — 수집/검색 용이)
+      LOG_PRETTY: "true"
       # 컨테이너 간 통신은 서비스 이름 + 내부 포트 사용 (.env의 localhost/13306 값을 덮어씀)
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
