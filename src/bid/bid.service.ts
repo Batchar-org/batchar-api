@@ -8,6 +8,7 @@ import { BidCreateRequest, BidListRequest, BidResponse, BidSummary, BidBroadcast
 import { SseService } from '../product/sse/sse.service';
 import { BlockService } from '../block/block.service';
 import { BusinessException } from '../common/exceptions/business.exception';
+import { NotificationService } from '../notification/notification.service';
 
 // 순환 참조 방지를 위해 BidGateway의 타입 임포트
 import { BidGateway } from '../websocket/bid.gateway';
@@ -28,6 +29,7 @@ export class BidService {
     private readonly bidGateway: BidGateway,
     private readonly blockService: BlockService,
     private readonly dataSource: DataSource,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async placeBid(productId: number, bidderId: number, request: BidCreateRequest): Promise<BidResponse> {
@@ -76,6 +78,13 @@ export class BidService {
         throw new BusinessException('INVALID_BID_PRICE');
       }
 
+      // outbid 알림 대상(직전 최고입찰자)을 가격 갱신/입찰 저장 전에 같은 락 안에서 조회
+      const previousHighestBid = await queryRunner.manager.findOne(Bid, {
+        where: { product: { id: productId } },
+        order: { price: 'DESC' },
+        relations: { bidder: true },
+      });
+
       // 4. 가격 상승 및 저장
       product.raisePriceTo(request.price);
       await queryRunner.manager.save(product);
@@ -101,6 +110,24 @@ export class BidService {
       this.bidGateway.broadcastBid(productId, broadcast).catch((err) => {
         this.logger.error(`WebSocket broadcast failed for product=${productId}`, err);
       });
+
+      // 푸시/인앱 알림 발송 (커밋 후 fire-and-forget, 내부에서 예외를 격리함)
+      void this.notificationService.notifyBidPlaced({
+        sellerId: Number(product.seller.id),
+        productId,
+        productTitle: product.title,
+        bidderName: bidder.name,
+        price: request.price,
+      });
+
+      if (previousHighestBid && Number(previousHighestBid.bidder.id) !== bidderId) {
+        void this.notificationService.notifyOutbid({
+          previousBidderId: Number(previousHighestBid.bidder.id),
+          productId,
+          productTitle: product.title,
+          newPrice: request.price,
+        });
+      }
 
       return BidResponse.from(bid);
     } catch (e) {

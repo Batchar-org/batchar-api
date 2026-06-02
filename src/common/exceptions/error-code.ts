@@ -75,6 +75,10 @@ export const ErrorCode = {
   // Moderation
   USER_SUSPENDED: { httpStatus: HttpStatus.FORBIDDEN, message: '정지되었거나 탈퇴한 사용자입니다.' },
   ADMIN_FORBIDDEN: { httpStatus: HttpStatus.FORBIDDEN, message: '관리자만 접근할 수 있습니다.' },
+
+  // Notification
+  INVALID_PUSH_TOKEN: { httpStatus: HttpStatus.BAD_REQUEST, message: '유효하지 않은 푸시 토큰입니다.' },
+  NOTIFICATION_NOT_FOUND: { httpStatus: HttpStatus.NOT_FOUND, message: '알림을 찾을 수 없습니다.' },
 } as const;
 
 export type ErrorCodeKey = keyof typeof ErrorCode;

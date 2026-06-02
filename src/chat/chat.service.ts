@@ -1,4 +1,4 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Inject, forwardRef, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
 import { ChatRoom } from './entities/chat-room.entity';
@@ -10,11 +10,14 @@ import { StorageService } from '../common/storage/storage.service';
 import { BlockService } from '../block/block.service';
 import { BidGateway } from '../websocket/bid.gateway';
 import { BusinessException } from '../common/exceptions/business.exception';
+import { NotificationService } from '../notification/notification.service';
 import { ChatListResponse, ChatMessageResponse } from './dto/chat.dto';
 import { ProductStatus } from '../product/entities/product-status.enum';
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     @InjectRepository(ChatRoom)
     private readonly chatRoomRepository: Repository<ChatRoom>,
@@ -27,7 +30,48 @@ export class ChatService {
     private readonly blockService: BlockService,
     @Inject(forwardRef(() => BidGateway))
     private readonly bidGateway: BidGateway,
+    private readonly notificationService: NotificationService,
   ) {}
+
+  // 채팅방에서 발신자가 아닌 상대 참여자를 반환한다.
+  private getRecipient(chatRoom: ChatRoom, senderId: number): User {
+    return Number(chatRoom.seller.id) === Number(senderId) ? chatRoom.buyer : chatRoom.seller;
+  }
+
+  // 상대 참여자에게 채팅 알림을 보낸다. 차단 관계이거나 수신자가 방을 나간(삭제) 경우에는 보내지 않는다.
+  private async notifyChatRecipient(
+    chatRoom: ChatRoom,
+    senderId: number,
+    senderName: string,
+    preview: string,
+  ): Promise<void> {
+    try {
+      const recipient = this.getRecipient(chatRoom, senderId);
+      const recipientId = Number(recipient.id);
+
+      // 수신자가 채팅방을 나갔으면(목록에서도 숨겨진 상태) 알림하지 않음
+      const recipientLeftRoom =
+        Number(chatRoom.seller.id) === recipientId ? chatRoom.sellerDeleted : chatRoom.buyerDeleted;
+      if (recipientLeftRoom) {
+        return;
+      }
+
+      // 차단 관계면 알림하지 않음 (입찰 경로의 차단 정책과 일치)
+      if (await this.blockService.isBlocked(senderId, recipientId)) {
+        return;
+      }
+
+      await this.notificationService.notifyChatMessage({
+        recipientId,
+        chatId: Number(chatRoom.id),
+        productId: Number(chatRoom.product.id),
+        senderName,
+        preview,
+      });
+    } catch (e) {
+      this.logger.error(`Failed to notify chat recipient for chat=${chatRoom.id}`, e);
+    }
+  }
 
   async generateChatRoom(product: Product, seller: User, bidder: User): Promise<void> {
     const chatRoom = ChatRoom.createChatRoom(product, seller, bidder);
@@ -127,6 +171,9 @@ export class ChatService {
 
     // 웹소켓으로 실시간 브로드캐스트
     await this.bidGateway.broadcastChatMessage(chatId, response);
+
+    // 푸시/인앱 알림 발송 (상대 참여자에게, 차단/방나감 가드 후 fire-and-forget)
+    void this.notifyChatRecipient(chatRoom, userId, user.name, content);
 
     return response;
   }
@@ -232,6 +279,9 @@ export class ChatService {
 
     // 웹소켓으로 실시간 브로드캐스트
     await this.bidGateway.broadcastChatMessage(chatId, response);
+
+    // 푸시/인앱 알림 발송 (상대 참여자에게, 차단/방나감 가드 후 fire-and-forget)
+    void this.notifyChatRecipient(chatRoom, userId, user.name, '사진을 보냈어요');
 
     return response;
   }

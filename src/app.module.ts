@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { RedisModule } from './common/redis/redis.module';
 import { StorageModule } from './common/storage/storage.module';
 import { EmailModule } from './common/email/email.module';
+import { NotificationModule } from './notification/notification.module';
 import { AuctionModule } from './auction/auction.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
@@ -35,6 +36,7 @@ import { AdminModule } from './admin/admin.module';
     RedisModule,
     StorageModule,
     EmailModule,
+    NotificationModule,
     AuctionModule,
     AuthModule,
     UserModule,

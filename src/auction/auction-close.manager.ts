@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { ProductStatus } from '../product/entities/product-status.enum';
 import { Bid } from '../bid/entities/bid.entity';
 import { BidStatus } from '../bid/entities/bid-status.enum';
 import { ChatService } from '../chat/chat.service';
 import { BusinessException } from '../common/exceptions/business.exception';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AuctionCloseManager {
@@ -14,6 +15,7 @@ export class AuctionCloseManager {
   constructor(
     private readonly dataSource: DataSource,
     private readonly chatService: ChatService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   // 1. 자동 마감용 (Redis TTL 만료 혹은 스케줄러 배치 호출)
@@ -52,6 +54,13 @@ export class AuctionCloseManager {
         await queryRunner.manager.save(lockedProduct);
         await queryRunner.commitTransaction();
         this.logger.log(`[경매 유찰] 입찰자가 없어 유찰 처리되었습니다. productId=${productId}`);
+
+        // 유찰 알림 (전이를 실제 수행한 이 경로에서만 발송 → 정확히 1회)
+        this.dispatchAuctionFailed({
+          productId,
+          productTitle: lockedProduct.title,
+          sellerId: Number(lockedProduct.seller.id),
+        });
         return;
       }
 
@@ -65,8 +74,24 @@ export class AuctionCloseManager {
       // 낙찰 채팅방 생성
       await this.chatService.generateChatRoom(lockedProduct, lockedProduct.seller, highestBid.bidder);
 
+      // 패찰자(낙찰자 제외) 목록을 커밋 전에 수집
+      const winnerId = Number(highestBid.bidder.id);
+      const loserIds = await this.collectLoserIds(queryRunner.manager, productId, winnerId);
+
       await queryRunner.commitTransaction();
       this.logger.log(`[경매 낙찰 성공] productId=${productId} 낙찰자Id=${highestBid.bidder.id} 낙찰가=${highestBid.price}`);
+
+      // 낙찰/판매자/패찰 알림 (전이를 실제 수행한 이 경로에서만 발송 → 정확히 1회)
+      this.dispatchAuctionWon({
+        productId,
+        productTitle: lockedProduct.title,
+        price: Number(highestBid.price),
+        sellerId: Number(lockedProduct.seller.id),
+        sellerName: lockedProduct.seller.name,
+        winnerId,
+        winnerName: highestBid.bidder.name,
+        loserIds,
+      });
     } catch (e) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`Failed to close auction automatically for product=${productId}`, e);
@@ -108,6 +133,13 @@ export class AuctionCloseManager {
         await queryRunner.manager.save(lockedProduct);
         await queryRunner.commitTransaction();
         this.logger.log(`[경매 수동 유찰] 입찰자가 없어 유찰 처리되었습니다. productId=${productId}`);
+
+        // 유찰 알림 (전이를 실제 수행한 이 경로에서만 발송 → 정확히 1회)
+        this.dispatchAuctionFailed({
+          productId,
+          productTitle: lockedProduct.title,
+          sellerId: Number(lockedProduct.seller.id),
+        });
         return;
       }
 
@@ -119,8 +151,24 @@ export class AuctionCloseManager {
 
       await this.chatService.generateChatRoom(lockedProduct, lockedProduct.seller, highestBid.bidder);
 
+      // 패찰자(낙찰자 제외) 목록을 커밋 전에 수집
+      const winnerId = Number(highestBid.bidder.id);
+      const loserIds = await this.collectLoserIds(queryRunner.manager, productId, winnerId);
+
       await queryRunner.commitTransaction();
       this.logger.log(`[경매 수동 낙찰 성공] productId=${productId} 낙찰자Id=${highestBid.bidder.id}`);
+
+      // 낙찰/판매자/패찰 알림 (전이를 실제 수행한 이 경로에서만 발송 → 정확히 1회)
+      this.dispatchAuctionWon({
+        productId,
+        productTitle: lockedProduct.title,
+        price: Number(highestBid.price),
+        sellerId: Number(lockedProduct.seller.id),
+        sellerName: lockedProduct.seller.name,
+        winnerId,
+        winnerName: highestBid.bidder.name,
+        loserIds,
+      });
     } catch (e) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`Failed to close auction manually for product=${productId} by seller=${sellerId}`, e);
@@ -128,5 +176,65 @@ export class AuctionCloseManager {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  // 해당 상품의 입찰자 중 낙찰자를 제외한 패찰자 id 목록(중복 제거)을 반환한다.
+  private async collectLoserIds(
+    manager: EntityManager,
+    productId: number,
+    winnerId: number,
+  ): Promise<number[]> {
+    const bids = await manager.find(Bid, {
+      where: { product: { id: productId } },
+      relations: { bidder: true },
+    });
+    return [...new Set(bids.map((bid) => Number(bid.bidder.id)))].filter((id) => id !== winnerId);
+  }
+
+  // 낙찰 결과 알림: 낙찰자 + 판매자 + 패찰자 전원 (커밋 후 fire-and-forget)
+  private dispatchAuctionWon(params: {
+    productId: number;
+    productTitle: string;
+    price: number;
+    sellerId: number;
+    sellerName: string;
+    winnerId: number;
+    winnerName: string;
+    loserIds: number[];
+  }): void {
+    void this.notificationService.notifyAuctionWon({
+      winnerId: params.winnerId,
+      productId: params.productId,
+      productTitle: params.productTitle,
+      price: params.price,
+      sellerName: params.sellerName,
+    });
+    void this.notificationService.notifyAuctionSold({
+      sellerId: params.sellerId,
+      productId: params.productId,
+      productTitle: params.productTitle,
+      price: params.price,
+      winnerName: params.winnerName,
+    });
+    for (const loserId of params.loserIds) {
+      void this.notificationService.notifyAuctionLost({
+        loserId,
+        productId: params.productId,
+        productTitle: params.productTitle,
+      });
+    }
+  }
+
+  // 유찰 알림: 판매자 (커밋 후 fire-and-forget)
+  private dispatchAuctionFailed(params: {
+    productId: number;
+    productTitle: string;
+    sellerId: number;
+  }): void {
+    void this.notificationService.notifyAuctionFailed({
+      sellerId: params.sellerId,
+      productId: params.productId,
+      productTitle: params.productTitle,
+    });
   }
 }
