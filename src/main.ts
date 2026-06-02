@@ -5,9 +5,14 @@ import { ValidationPipe } from '@nestjs/common';
 import { SnakeCaseInterceptor } from './common/interceptors/snake-case.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { WsAdapter } from '@nestjs/platform-ws';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // bufferLogs: 커스텀 로거가 준비되기 전의 부팅 로그를 모아뒀다가 한 번에 출력
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // pino 로거를 앱 전역 로거로 지정 → 부팅 로그 + 모든 new Logger() 호출이 pino로 통합됨
+  app.useLogger(app.get(Logger));
 
   // WsAdapter를 이용해 WebSockets을 raw ws 기반으로 띄움 (STOMP 스펙 지원용)
   app.useWebSocketAdapter(new WsAdapter(app));

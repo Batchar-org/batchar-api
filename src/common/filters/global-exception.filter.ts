@@ -6,7 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { BusinessException } from '../exceptions/business.exception';
 import { ErrorCode } from '../exceptions/error-code';
 
@@ -17,6 +17,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let code = 'INTERNAL_SERVER_ERROR';
@@ -53,6 +54,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       code,
       message,
       ...(details ? { details } : {}),
+      // 프론트엔드가 실패한 요청을 서버 로그에서 추적할 수 있도록 요청 ID를 함께 내려준다.
+      request_id: (request as any).id,
     };
 
     response.status(status).json(errorResponse);

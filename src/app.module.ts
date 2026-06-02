@@ -19,9 +19,11 @@ import { BlockModule } from './block/block.module';
 import { ReportModule } from './report/report.module';
 import { AdminModule } from './admin/admin.module';
 import { FertilityModule } from './fertility/fertility.module';
+import { LoggerConfigModule } from './common/logger/logger.module';
 
 @Module({
   imports: [
+    LoggerConfigModule,
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.MYSQL_HOST || 'localhost',
