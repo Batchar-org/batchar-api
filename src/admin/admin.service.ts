@@ -6,7 +6,9 @@ import { Product } from '../product/entities/product.entity';
 import { ChatMessage } from '../chat/entities/chat-message.entity';
 import { Report } from '../report/entities/report.entity';
 import { ProductStatus } from '../product/entities/product-status.enum';
+import { ReportStatus } from '../report/entities/report-status.enum';
 import { BusinessException } from '../common/exceptions/business.exception';
+import { NotificationService } from '../notification/notification.service';
 import {
   ReportListRequest,
   ReportSummary,
@@ -24,6 +26,7 @@ export class AdminService {
     private readonly chatMessageRepository: Repository<ChatMessage>,
     @InjectRepository(Report)
     private readonly reportRepository: Repository<Report>,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async suspendUser(userId: number): Promise<void> {
@@ -72,6 +75,7 @@ export class AdminService {
   ): Promise<void> {
     const report = await this.reportRepository.findOne({
       where: { id: reportId },
+      relations: { reporter: true },
     });
     if (!report) {
       throw new BusinessException('REPORT_NOT_FOUND');
@@ -79,6 +83,14 @@ export class AdminService {
     report.status = request.status;
     report.reviewedAt = new Date();
     await this.reportRepository.save(report);
+
+    // 종결(처리완료/반려) 상태일 때만 신고자에게 결과 알림 (fire-and-forget)
+    if (report.status === ReportStatus.RESOLVED || report.status === ReportStatus.DISMISSED) {
+      void this.notificationService.notifyReportResolved({
+        reporterId: Number(report.reporter.id),
+        status: report.status,
+      });
+    }
   }
 
   async listReports(request: ReportListRequest) {
