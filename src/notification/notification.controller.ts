@@ -101,4 +101,25 @@ export class NotificationController {
     );
     return { data, message: '알림 설정을 변경했습니다.' };
   }
+
+  // device-tokens 등 리터럴 DELETE 라우트보다 뒤에 선언해야 :notificationId가 가로채지 않는다.
+  @Delete(':notificationId')
+  @HttpCode(200)
+  async deleteNotification(
+    @CurrentUser() userId: number,
+    @Param('notificationId') notificationId: number,
+  ) {
+    await this.notificationService.deleteNotification(
+      userId,
+      Number(notificationId),
+    );
+    return { data: null, message: '알림을 삭제했습니다.' };
+  }
+
+  @Delete()
+  @HttpCode(200)
+  async deleteAllNotifications(@CurrentUser() userId: number) {
+    await this.notificationService.deleteAllNotifications(userId);
+    return { data: null, message: '모든 알림을 삭제했습니다.' };
+  }
 }

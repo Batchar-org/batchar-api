@@ -107,6 +107,20 @@ export class NotificationService {
     );
   }
 
+  async deleteNotification(userId: number, notificationId: number): Promise<void> {
+    const result = await this.notificationRepository.delete({
+      id: notificationId,
+      user: { id: userId },
+    });
+    if (!result.affected) {
+      throw new BusinessException('NOTIFICATION_NOT_FOUND');
+    }
+  }
+
+  async deleteAllNotifications(userId: number): Promise<void> {
+    await this.notificationRepository.delete({ user: { id: userId } });
+  }
+
   // ==================== 설정 ====================
 
   async getSetting(userId: number) {
