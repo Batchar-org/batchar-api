@@ -26,6 +26,10 @@ export class ChatListResponse {
   iBlocked: boolean;
 
   blockedByPartner: boolean;
+
+  isSeller: boolean;
+
+  partnerLeft: boolean;
 }
 
 export class ChatMessageRequest {

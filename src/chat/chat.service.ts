@@ -95,6 +95,7 @@ export class ChatService {
       const partnerProfileImageUrl = partner.profileImageUrl;
       const myConfirmed = isSeller ? chatRoom.sellerConfirmed : chatRoom.buyerConfirmed;
       const partnerConfirmed = isSeller ? chatRoom.buyerConfirmed : chatRoom.sellerConfirmed;
+      const partnerLeft = isSeller ? chatRoom.buyerDeleted : chatRoom.sellerDeleted;
 
       const lastMsgEntity = await this.chatMessageRepository.findOne({
         where: { chat: { id: chatRoom.id } },
@@ -131,6 +132,8 @@ export class ChatService {
         isBlocked: iBlocked || blockedByPartner,
         iBlocked,
         blockedByPartner,
+        isSeller,
+        partnerLeft,
       });
     }
 
