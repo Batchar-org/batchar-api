@@ -6,16 +6,29 @@ import { SnakeCaseInterceptor } from './common/interceptors/snake-case.intercept
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { Logger } from 'nestjs-pino';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import type { NextFunction, Request, Response } from 'express';
 
 async function bootstrap() {
   // bufferLogs: 커스텀 로거가 준비되기 전의 부팅 로그를 모아뒀다가 한 번에 출력
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
 
   // pino 로거를 앱 전역 로거로 지정 → 부팅 로그 + 모든 new Logger() 호출이 pino로 통합됨
   app.useLogger(app.get(Logger));
 
   // WsAdapter를 이용해 WebSockets을 raw ws 기반으로 띄움 (STOMP 스펙 지원용)
   app.useWebSocketAdapter(new WsAdapter(app));
+
+  // 모바일 앱 API는 항상 최신 JSON이 필요하므로 Express ETag/304 캐시를 사용하지 않는다.
+  app.set('etag', false);
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith('/api/')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+    next();
+  });
 
   // CORS 설정 (Spring Security와 동일한 패턴 매핑)
   app.enableCors({
@@ -40,4 +53,3 @@ async function bootstrap() {
   console.log(`Application is running on: http://localhost:${port}`);
 }
 bootstrap();
-

@@ -99,6 +99,7 @@ export class ChatService {
       const isSeller = Number(chatRoom.seller.id) === Number(userId);
       const partner = isSeller ? chatRoom.buyer : chatRoom.seller;
       const partnerName = partner.name;
+      const partnerFertility = Number(partner.fertility);
       const partnerProfileImageUrl = partner.profileImageUrl;
       const myConfirmed = isSeller ? chatRoom.sellerConfirmed : chatRoom.buyerConfirmed;
       const partnerConfirmed = isSeller ? chatRoom.buyerConfirmed : chatRoom.sellerConfirmed;
@@ -128,7 +129,10 @@ export class ChatService {
       responses.push({
         chatId: Number(chatRoom.id),
         productId: Number(chatRoom.product.id),
+        productTitle: chatRoom.product.title,
+        productPrice: Number(chatRoom.product.currentPrice),
         partnerName,
+        partnerFertility,
         partnerProfileImageUrl,
         productImageUrl,
         lastMessage,
