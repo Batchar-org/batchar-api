@@ -5,7 +5,13 @@ export class ChatListResponse {
 
   productId: number;
 
+  productTitle: string;
+
+  productPrice: number;
+
   partnerName: string;
+
+  partnerFertility: number;
 
   partnerProfileImageUrl: string | null;
 
