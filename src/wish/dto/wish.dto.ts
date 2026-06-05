@@ -9,6 +9,8 @@ export class WishSummary {
 
   title: string;
 
+  startPrice: number;
+
   currentPrice: number;
 
   status: ProductStatus;
@@ -16,6 +18,8 @@ export class WishSummary {
   endTime: Date;
 
   mainImageUrl: string | null;
+
+  bidCount: number;
 }
 
 export class WishListRequest {

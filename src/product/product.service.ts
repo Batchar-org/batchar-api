@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository, Like } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
-import { ProductMedia } from './entities/product-media.entity';
 import { User } from '../user/entities/user.entity';
 import { Wish } from '../wish/entities/wish.entity';
 import { Bid } from '../bid/entities/bid.entity';
@@ -19,7 +18,10 @@ import {
   ProductUpdateRequest,
 } from './dto/product.dto';
 import { ProductStatus } from './entities/product-status.enum';
-import { ProductViewType, requiresAuth } from './entities/product-view-type.enum';
+import {
+  ProductViewType,
+  requiresAuth,
+} from './entities/product-view-type.enum';
 
 @Injectable()
 export class ProductService {
@@ -46,7 +48,9 @@ export class ProductService {
     request: ProductCreateRequest,
     files: Express.Multer.File[],
   ): Promise<ProductResponse> {
-    const seller = await this.userRepository.findOne({ where: { id: sellerId } });
+    const seller = await this.userRepository.findOne({
+      where: { id: sellerId },
+    });
     if (!seller) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -66,7 +70,11 @@ export class ProductService {
       );
 
       await queryRunner.manager.save(product);
-      await this.productMediaService.saveMedia(product, files, queryRunner.manager);
+      await this.productMediaService.saveMedia(
+        product,
+        files,
+        queryRunner.manager,
+      );
 
       await queryRunner.commitTransaction();
 
@@ -97,24 +105,40 @@ export class ProductService {
 
     // 키워드 와일드카드 검색 팩터 빌드 (스프링과 동일하게 공백을 %로 변환)
     const keywordPattern = this.buildKeywordPattern(keyword);
+    const now = new Date();
+    const activeProductCondition =
+      'product.status = :onSaleStatus AND product.end_time > :now';
 
     // View 타입에 맞춰 쿼리 빌더를 이용하여 조회 분기 처리
     const qb = this.productRepository.createQueryBuilder('product');
     qb.leftJoinAndSelect('product.seller', 'seller');
     qb.leftJoinAndSelect('product.winner', 'winner');
+    qb.setParameters({
+      onSaleStatus: ProductStatus.ON_SALE,
+      now,
+    });
 
     if (view === ProductViewType.MY_PRODUCTS) {
       qb.where('product.seller_id = :userId', { userId });
     } else if (view === ProductViewType.MY_BIDS) {
       qb.innerJoin('bids', 'bid', 'bid.product_id = product.id')
         .where('bid.bidder_id = :userId', { userId })
-        .andWhere('(product.status = :onSaleStatus OR product.winner_id = :userId)', {
-          onSaleStatus: ProductStatus.ON_SALE,
-          userId,
-        })
+        .andWhere(
+          `(${activeProductCondition} OR product.winner_id = :userId)`,
+          { userId },
+        )
         .distinct(true);
+    } else if (view === ProductViewType.MY_ACTIVE_BIDS) {
+      qb.innerJoin('bids', 'bid', 'bid.product_id = product.id')
+        .where('bid.bidder_id = :userId', { userId })
+        .andWhere(activeProductCondition)
+        .distinct(true);
+    } else if (view === ProductViewType.ALL) {
+      qb.where('1 = 1');
+    } else if (view === ProductViewType.BID_CLOSED) {
+      qb.where(`NOT (${activeProductCondition})`);
     } else {
-      qb.where('product.status = :status', { status: ProductStatus.ON_SALE });
+      qb.where(activeProductCondition);
     }
 
     if (category) {
@@ -122,31 +146,42 @@ export class ProductService {
     }
 
     if (keywordPattern) {
-      qb.andWhere('LOWER(product.title) LIKE LOWER(:keyword)', { keyword: keywordPattern });
+      qb.andWhere('LOWER(product.title) LIKE LOWER(:keyword)', {
+        keyword: keywordPattern,
+      });
     }
 
     // 숨김(HIDDEN) 처리된 상품은 모든 뷰에서 제외
-    qb.andWhere('product.status != :hiddenStatus', { hiddenStatus: ProductStatus.HIDDEN });
+    qb.andWhere('product.status != :hiddenStatus', {
+      hiddenStatus: ProductStatus.HIDDEN,
+    });
 
     // 차단 관계(양방향)인 판매자의 상품 제외
     if (userId) {
       const blockedUserIds = await this.blockService.getBlockedUserIds(userId);
       if (blockedUserIds.length > 0) {
-        qb.andWhere('product.seller_id NOT IN (:...blockedUserIds)', { blockedUserIds });
+        qb.andWhere('product.seller_id NOT IN (:...blockedUserIds)', {
+          blockedUserIds,
+        });
       }
     }
 
     // 정렬 분기
     if (view === ProductViewType.POPULAR) {
-      // 찜 수 기준 정렬을 서브쿼리나 leftJoin 찜 카운트로 수행
-      qb.leftJoin('wishes', 'wish', 'wish.product_id = product.id')
-        .groupBy('product.id, seller.id')
-        .orderBy('COUNT(wish.id)', 'DESC')
+      qb.addSelect(
+        (subQuery) =>
+          subQuery
+            .select('COUNT(wish.id)')
+            .from(Wish, 'wish')
+            .where('wish.product_id = product.id'),
+        'wishCountForOrder',
+      )
+        .orderBy('wishCountForOrder', 'DESC')
         .addOrderBy('product.created_at', 'DESC');
     } else if (view === ProductViewType.ENDING_SOON) {
       qb.orderBy('product.end_time', 'ASC');
     } else {
-      // LATEST / ALL / MY_PRODUCTS / MY_BIDS 등은 생성시각 역순
+      // LATEST / ALL / BIDDING / BID_CLOSED / MY_PRODUCTS / MY_ACTIVE_BIDS / MY_BIDS 등은 생성시각 역순
       qb.orderBy('product.created_at', 'DESC');
     }
 
@@ -157,16 +192,23 @@ export class ProductService {
 
     const content: ProductSummary[] = [];
     for (const product of slicedContent) {
-      const mainImageUrl = await this.productMediaService.getFirstMediaUrl(product.id);
-      const wishCount = await this.wishRepository.count({ where: { product: { id: product.id } } });
+      const mainImageUrl = await this.productMediaService.getFirstMediaUrl(
+        product.id,
+      );
+      const wishCount = await this.wishRepository.count({
+        where: { product: { id: product.id } },
+      });
 
       // 입찰자 중복 제외 카운트
       const bidCountResult = await this.bidRepository
         .createQueryBuilder('bid')
         .select('COUNT(DISTINCT bid.bidder_id)', 'count')
         .where('bid.product_id = :productId', { productId: product.id })
-        .getRawOne();
+        .getRawOne<{ count: string }>();
       const bidCount = parseInt(bidCountResult?.count || '0', 10);
+      const myBidPrice = userId
+        ? await this.findMyHighestBidPrice(userId, product.id)
+        : null;
 
       content.push({
         id: product.id,
@@ -175,12 +217,15 @@ export class ProductService {
         title: product.title,
         startPrice: Number(product.startPrice),
         currentPrice: Number(product.currentPrice),
+        myBidPrice,
         status: product.status,
         endTime: product.endTime,
         mainImageUrl,
         wishCount,
         bidCount,
-        isWinner: userId ? Number(product.winner?.id) === Number(userId) : false,
+        isWinner: userId
+          ? Number(product.winner?.id) === Number(userId)
+          : false,
       });
     }
 
@@ -190,7 +235,10 @@ export class ProductService {
     };
   }
 
-  async getProductDetail(productId: number, userId: number | null): Promise<ProductDetailResponse> {
+  async getProductDetail(
+    productId: number,
+    userId: number | null,
+  ): Promise<ProductDetailResponse> {
     const product = await this.productRepository.findOne({
       where: { id: productId },
       relations: { seller: true, winner: true },
@@ -208,22 +256,28 @@ export class ProductService {
         order: { price: 'DESC' },
       });
       if (myHighestBid) {
-        isTopBidder = Number(myHighestBid.price) === Number(product.currentPrice);
+        isTopBidder =
+          Number(myHighestBid.price) === Number(product.currentPrice);
       }
     }
 
-    const mediaUrls = await this.productMediaService.getMediaInfoByProductId(productId);
-    const wishCount = await this.wishRepository.count({ where: { product: { id: productId } } });
+    const mediaUrls =
+      await this.productMediaService.getMediaInfoByProductId(productId);
+    const wishCount = await this.wishRepository.count({
+      where: { product: { id: productId } },
+    });
 
     const bidCountResult = await this.bidRepository
       .createQueryBuilder('bid')
       .select('COUNT(DISTINCT bid.bidder_id)', 'count')
       .where('bid.product_id = :productId', { productId })
-      .getRawOne();
+      .getRawOne<{ count: string }>();
     const bidCount = parseInt(bidCountResult?.count || '0', 10);
 
     const isWished = userId
-      ? await this.wishRepository.exists({ where: { user: { id: userId }, product: { id: productId } } })
+      ? await this.wishRepository.exists({
+          where: { user: { id: userId }, product: { id: productId } },
+        })
       : false;
 
     return {
@@ -233,7 +287,9 @@ export class ProductService {
       sellerProfileImageUrl: product.seller.profileImageUrl,
       sellerFertility: Number(product.seller.fertility),
       winnerName: product.winner ? product.winner.name : null,
-      winnerProfileImageUrl: product.winner ? product.winner.profileImageUrl : null,
+      winnerProfileImageUrl: product.winner
+        ? product.winner.profileImageUrl
+        : null,
       title: product.title,
       description: product.description,
       category: product.category,
@@ -278,18 +334,35 @@ export class ProductService {
     await queryRunner.startTransaction();
 
     try {
-      product.updateInfo(request.title, request.description, request.category, request.endTime);
+      product.updateInfo(
+        request.title,
+        request.description,
+        request.category,
+        request.endTime,
+      );
       await queryRunner.manager.save(product);
 
       // 삭제 미디어 처리
       if (request.deleteMediaIds && request.deleteMediaIds.length > 0) {
-        await this.productMediaService.validateMinimumMediaCount(productId, request.deleteMediaIds, files);
-        await this.productMediaService.deleteMediaByIds(productId, request.deleteMediaIds, queryRunner.manager);
+        await this.productMediaService.validateMinimumMediaCount(
+          productId,
+          request.deleteMediaIds,
+          files,
+        );
+        await this.productMediaService.deleteMediaByIds(
+          productId,
+          request.deleteMediaIds,
+          queryRunner.manager,
+        );
       }
 
       // 신규 미디어 추가
       if (files && files.length > 0) {
-        await this.productMediaService.saveMedia(product, files, queryRunner.manager);
+        await this.productMediaService.saveMedia(
+          product,
+          files,
+          queryRunner.manager,
+        );
       }
 
       await queryRunner.commitTransaction();
@@ -307,7 +380,10 @@ export class ProductService {
     }
   }
 
-  async deleteProduct(productId: number, userId: number): Promise<ProductResponse> {
+  async deleteProduct(
+    productId: number,
+    userId: number,
+  ): Promise<ProductResponse> {
     const product = await this.productRepository.findOne({
       where: { id: productId },
       relations: { seller: true },
@@ -327,7 +403,10 @@ export class ProductService {
 
     try {
       // 미디어, 입찰, 찜 삭제 후 상품 삭제
-      await this.productMediaService.deleteAllByProductId(productId, queryRunner.manager);
+      await this.productMediaService.deleteAllByProductId(
+        productId,
+        queryRunner.manager,
+      );
       await queryRunner.manager.delete(Bid, { product: { id: productId } });
       await queryRunner.manager.delete(Wish, { product: { id: productId } });
       await queryRunner.manager.remove(product);
@@ -352,13 +431,33 @@ export class ProductService {
     return `%${keyword.trim().replace(/\s+/g, '%')}%`;
   }
 
-  private async registerAuctionTtl(productId: number, endTime: Date): Promise<void> {
+  private async findMyHighestBidPrice(
+    userId: number,
+    productId: number,
+  ): Promise<number | null> {
+    const bid = await this.bidRepository.findOne({
+      where: { bidder: { id: userId }, product: { id: productId } },
+      order: { price: 'DESC' },
+    });
+    return bid ? Number(bid.price) : null;
+  }
+
+  private async registerAuctionTtl(
+    productId: number,
+    endTime: Date,
+  ): Promise<void> {
     try {
       const key = ProductService.AUCTION_KEY_PREFIX + productId;
-      const ttlSeconds = Math.max(Math.floor((endTime.getTime() - Date.now()) / 1000), 0);
+      const ttlSeconds = Math.max(
+        Math.floor((endTime.getTime() - Date.now()) / 1000),
+        0,
+      );
       await this.redisService.set(key, '', ttlSeconds);
     } catch (e) {
-      this.logger.error(`Failed to register Redis TTL for product=${productId}`, e);
+      this.logger.error(
+        `Failed to register Redis TTL for product=${productId}`,
+        e,
+      );
     }
   }
 
@@ -367,7 +466,10 @@ export class ProductService {
       const key = ProductService.AUCTION_KEY_PREFIX + productId;
       await this.redisService.delete(key);
     } catch (e) {
-      this.logger.error(`Failed to delete Redis TTL for product=${productId}`, e);
+      this.logger.error(
+        `Failed to delete Redis TTL for product=${productId}`,
+        e,
+      );
     }
   }
 }

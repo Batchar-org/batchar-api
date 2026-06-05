@@ -1,4 +1,11 @@
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { ProductStatus } from '../entities/product-status.enum';
 import { ProductViewType } from '../entities/product-view-type.enum';
@@ -24,6 +31,8 @@ export class ProductSummary {
   startPrice: number;
 
   currentPrice: number;
+
+  myBidPrice: number | null;
 
   status: ProductStatus;
 
@@ -163,7 +172,7 @@ export class ProductUpdateRequest {
     if (Array.isArray(value)) {
       return value.map(Number);
     }
-    return value;
+    return undefined;
   })
   @IsInt({ each: true })
   @IsOptional()
