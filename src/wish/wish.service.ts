@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Wish } from './entities/wish.entity';
 import { Product } from '../product/entities/product.entity';
 import { User } from '../user/entities/user.entity';
+import { Bid } from '../bid/entities/bid.entity';
 import { ProductMediaService } from '../product/product-media.service';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { WishListRequest, WishSummary } from './dto/wish.dto';
@@ -17,6 +18,8 @@ export class WishService {
     private readonly productRepository: Repository<Product>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Bid)
+    private readonly bidRepository: Repository<Bid>,
     private readonly productMediaService: ProductMediaService,
   ) {}
 
@@ -26,7 +29,9 @@ export class WishService {
       throw new BusinessException('USER_NOT_FOUND');
     }
 
-    const product = await this.productRepository.findOne({ where: { id: productId } });
+    const product = await this.productRepository.findOne({
+      where: { id: productId },
+    });
     if (!product) {
       throw new BusinessException('PRODUCT_NOT_FOUND');
     }
@@ -73,15 +78,26 @@ export class WishService {
 
     const content: WishSummary[] = [];
     for (const wish of slicedWishes) {
-      const mainImageUrl = await this.productMediaService.getFirstMediaUrl(wish.product.id);
+      const mainImageUrl = await this.productMediaService.getFirstMediaUrl(
+        wish.product.id,
+      );
+      const bidCountResult = await this.bidRepository
+        .createQueryBuilder('bid')
+        .select('COUNT(DISTINCT bid.bidder_id)', 'count')
+        .where('bid.product_id = :productId', { productId: wish.product.id })
+        .getRawOne<{ count: string }>();
+      const bidCount = parseInt(bidCountResult?.count || '0', 10);
+
       content.push({
         id: wish.id,
         productId: wish.product.id,
         title: wish.product.title,
+        startPrice: Number(wish.product.startPrice),
         currentPrice: Number(wish.product.currentPrice),
         status: wish.product.status,
         endTime: wish.product.endTime,
         mainImageUrl,
+        bidCount,
       });
     }
 
