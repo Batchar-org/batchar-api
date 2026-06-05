@@ -34,6 +34,8 @@ export class ProductSummary {
   wishCount: number;
 
   bidCount: number;
+
+  isWinner: boolean;
 }
 
 export class ProductMediaInfo {

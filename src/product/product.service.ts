@@ -101,13 +101,18 @@ export class ProductService {
     // View 타입에 맞춰 쿼리 빌더를 이용하여 조회 분기 처리
     const qb = this.productRepository.createQueryBuilder('product');
     qb.leftJoinAndSelect('product.seller', 'seller');
+    qb.leftJoinAndSelect('product.winner', 'winner');
 
     if (view === ProductViewType.MY_PRODUCTS) {
       qb.where('product.seller_id = :userId', { userId });
     } else if (view === ProductViewType.MY_BIDS) {
       qb.innerJoin('bids', 'bid', 'bid.product_id = product.id')
         .where('bid.bidder_id = :userId', { userId })
-        .andWhere('product.status = :status', { status: ProductStatus.ON_SALE });
+        .andWhere('(product.status = :onSaleStatus OR product.winner_id = :userId)', {
+          onSaleStatus: ProductStatus.ON_SALE,
+          userId,
+        })
+        .distinct(true);
     } else {
       qb.where('product.status = :status', { status: ProductStatus.ON_SALE });
     }
@@ -154,7 +159,7 @@ export class ProductService {
     for (const product of slicedContent) {
       const mainImageUrl = await this.productMediaService.getFirstMediaUrl(product.id);
       const wishCount = await this.wishRepository.count({ where: { product: { id: product.id } } });
-      
+
       // 입찰자 중복 제외 카운트
       const bidCountResult = await this.bidRepository
         .createQueryBuilder('bid')
@@ -175,6 +180,7 @@ export class ProductService {
         mainImageUrl,
         wishCount,
         bidCount,
+        isWinner: userId ? Number(product.winner?.id) === Number(userId) : false,
       });
     }
 
@@ -208,7 +214,7 @@ export class ProductService {
 
     const mediaUrls = await this.productMediaService.getMediaInfoByProductId(productId);
     const wishCount = await this.wishRepository.count({ where: { product: { id: productId } } });
-    
+
     const bidCountResult = await this.bidRepository
       .createQueryBuilder('bid')
       .select('COUNT(DISTINCT bid.bidder_id)', 'count')
