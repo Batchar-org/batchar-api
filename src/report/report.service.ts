@@ -5,8 +5,10 @@ import { Report } from './entities/report.entity';
 import { User } from '../user/entities/user.entity';
 import { Product } from '../product/entities/product.entity';
 import { ChatMessage } from '../chat/entities/chat-message.entity';
+import { ChatRoom } from '../chat/entities/chat-room.entity';
 import { ReportReason } from './entities/report-reason.enum';
 import { BusinessException } from '../common/exceptions/business.exception';
+import { NotificationService } from '../notification/notification.service';
 import {
   ReportMessageRequest,
   ReportProductRequest,
@@ -26,13 +28,16 @@ export class ReportService {
     private readonly productRepository: Repository<Product>,
     @InjectRepository(ChatMessage)
     private readonly chatMessageRepository: Repository<ChatMessage>,
+    @InjectRepository(ChatRoom)
+    private readonly chatRoomRepository: Repository<ChatRoom>,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async reportUser(
     reporterId: number,
     request: ReportUserRequest,
   ): Promise<number> {
-    const { targetUserId, reason, description } = request;
+    const { targetUserId, reason, description, chatId } = request;
 
     if (Number(reporterId) === Number(targetUserId)) {
       throw new BusinessException('SELF_REPORT_NOT_ALLOWED');
@@ -49,9 +54,21 @@ export class ReportService {
       targetUser: { id: targetUserId },
     });
 
-    return this.insertReport(reporterId, reason, description, {
+    const target: Partial<
+      Pick<
+        Report,
+        'targetUser' | 'targetProduct' | 'targetMessage' | 'targetChatRoom'
+      >
+    > = {
       targetUser: { id: targetUserId } as User,
-    });
+    };
+
+    if (chatId) {
+      await this.validateChatReportContext(chatId, reporterId, targetUserId);
+      target.targetChatRoom = { id: chatId } as ChatRoom;
+    }
+
+    return this.insertReport(reporterId, reason, description, target);
   }
 
   async reportProduct(
@@ -82,11 +99,18 @@ export class ReportService {
   ): Promise<number> {
     const { targetMessageId, reason, description } = request;
 
-    const exists = await this.chatMessageRepository.exists({
+    const targetMessage = await this.chatMessageRepository.findOne({
       where: { id: targetMessageId },
+      relations: { sender: true, chat: { seller: true, buyer: true } },
     });
-    if (!exists) {
+    if (!targetMessage) {
       throw new BusinessException('CHAT_MESSAGE_NOT_FOUND');
+    }
+    if (Number(targetMessage.sender.id) === Number(reporterId)) {
+      throw new BusinessException('SELF_REPORT_NOT_ALLOWED');
+    }
+    if (!targetMessage.chat.isParticipant(reporterId)) {
+      throw new BusinessException('CHAT_ACCESS_DENIED');
     }
 
     await this.ensureNoDuplicate(reporterId, {
@@ -125,7 +149,10 @@ export class ReportService {
     reason: ReportReason,
     description: string | undefined,
     target: Partial<
-      Pick<Report, 'targetUser' | 'targetProduct' | 'targetMessage'>
+      Pick<
+        Report,
+        'targetUser' | 'targetProduct' | 'targetMessage' | 'targetChatRoom'
+      >
     >,
   ): Promise<number> {
     const report = this.reportRepository.create({
@@ -135,6 +162,29 @@ export class ReportService {
       ...target,
     });
     await this.reportRepository.save(report);
+    void this.notificationService.notifyReportCreated({
+      reportId: Number(report.id),
+    });
     return Number(report.id);
+  }
+
+  private async validateChatReportContext(
+    chatId: number,
+    reporterId: number,
+    targetUserId: number,
+  ): Promise<void> {
+    const chatRoom = await this.chatRoomRepository.findOne({
+      where: { id: chatId },
+      relations: { seller: true, buyer: true },
+    });
+    if (!chatRoom) {
+      throw new BusinessException('CHATROOM_NOT_FOUND');
+    }
+    if (
+      !chatRoom.isParticipant(reporterId) ||
+      !chatRoom.isParticipant(targetUserId)
+    ) {
+      throw new BusinessException('CHAT_ACCESS_DENIED');
+    }
   }
 }

@@ -27,6 +27,9 @@ import {
 export class ProductService {
   private readonly logger = new Logger(ProductService.name);
   private static readonly AUCTION_KEY_PREFIX = 'auction:';
+  private static readonly DEFAULT_HISTORY_RETENTION_YEARS = 3;
+  private static readonly COMPLETED_PRODUCT_RETENTION_YEARS = 5;
+  private static readonly RETENTION_PURGE_BATCH_SIZE = 100;
 
   constructor(
     @InjectRepository(Product)
@@ -151,9 +154,9 @@ export class ProductService {
       });
     }
 
-    // 숨김(HIDDEN) 처리된 상품은 모든 뷰에서 제외
-    qb.andWhere('product.status != :hiddenStatus', {
-      hiddenStatus: ProductStatus.HIDDEN,
+    // 삭제 처리된 상품은 모든 뷰에서 제외
+    qb.andWhere('product.status != :deletedStatus', {
+      deletedStatus: ProductStatus.DELETED,
     });
 
     // 차단 관계(양방향)인 판매자의 상품 제외
@@ -245,6 +248,10 @@ export class ProductService {
     });
 
     if (!product) {
+      throw new BusinessException('PRODUCT_NOT_FOUND');
+    }
+
+    if (product.status === ProductStatus.DELETED) {
       throw new BusinessException('PRODUCT_NOT_FOUND');
     }
 
@@ -397,29 +404,113 @@ export class ProductService {
       throw new BusinessException('PRODUCT_DELETE_FORBIDDEN');
     }
 
+    return this.markProductAsDeleted(product);
+  }
+
+  async deleteProductByAdmin(productId: number): Promise<ProductResponse> {
+    const product = await this.productRepository.findOne({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      throw new BusinessException('PRODUCT_NOT_FOUND');
+    }
+
+    return this.markProductAsDeleted(product);
+  }
+
+  async purgeExpiredDeletedProducts(now = new Date()): Promise<number> {
+    const defaultRetentionDate = this.subtractYears(
+      now,
+      ProductService.DEFAULT_HISTORY_RETENTION_YEARS,
+    );
+    const completedRetentionDate = this.subtractYears(
+      now,
+      ProductService.COMPLETED_PRODUCT_RETENTION_YEARS,
+    );
+
+    const expiredProducts = await this.productRepository
+      .createQueryBuilder('product')
+      .where('product.status = :deletedStatus', {
+        deletedStatus: ProductStatus.DELETED,
+      })
+      .andWhere('product.deleted_at IS NOT NULL')
+      .andWhere(
+        [
+          '(',
+          '(',
+          'product.winner_id IS NOT NULL',
+          'AND product.deleted_at <= :completedRetentionDate',
+          ')',
+          'OR',
+          '(',
+          'product.winner_id IS NULL',
+          'AND product.deleted_at <= :defaultRetentionDate',
+          ')',
+          ')',
+        ].join(' '),
+        {
+          completedRetentionDate,
+          defaultRetentionDate,
+        },
+      )
+      .take(ProductService.RETENTION_PURGE_BATCH_SIZE)
+      .getMany();
+
+    let purgedCount = 0;
+    for (const product of expiredProducts) {
+      try {
+        await this.physicallyDeleteProduct(product);
+        purgedCount += 1;
+      } catch (e) {
+        this.logger.error(`Failed to purge expired product=${product.id}`, e);
+      }
+    }
+
+    return purgedCount;
+  }
+
+  private async markProductAsDeleted(
+    product: Product,
+  ): Promise<ProductResponse> {
+    const productId = Number(product.id);
+    if (product.status !== ProductStatus.DELETED || !product.deletedAt) {
+      product.markAsDeleted();
+      await this.productRepository.save(product);
+      await this.deleteAuctionTtl(productId);
+    }
+    return new ProductResponse(productId);
+  }
+
+  private async physicallyDeleteProduct(product: Product): Promise<void> {
+    const productId = Number(product.id);
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 미디어, 입찰, 찜 삭제 후 상품 삭제
       await this.productMediaService.deleteAllByProductId(
         productId,
         queryRunner.manager,
       );
-      await queryRunner.manager.delete(Bid, { product: { id: productId } });
-      await queryRunner.manager.delete(Wish, { product: { id: productId } });
-      await queryRunner.manager.remove(product);
+      await queryRunner.manager
+        .createQueryBuilder()
+        .delete()
+        .from(Bid)
+        .where('product_id = :productId', { productId })
+        .execute();
+      await queryRunner.manager
+        .createQueryBuilder()
+        .delete()
+        .from(Wish)
+        .where('product_id = :productId', { productId })
+        .execute();
+      await queryRunner.manager.delete(Product, productId);
 
       await queryRunner.commitTransaction();
-
-      // Redis TTL 삭제
       await this.deleteAuctionTtl(productId);
-
-      return new ProductResponse(productId);
     } catch (e) {
       await queryRunner.rollbackTransaction();
-      this.logger.error('Failed to delete product', e);
       throw e;
     } finally {
       await queryRunner.release();
@@ -471,5 +562,11 @@ export class ProductService {
         e,
       );
     }
+  }
+
+  private subtractYears(date: Date, years: number): Date {
+    const result = new Date(date.getTime());
+    result.setFullYear(result.getFullYear() - years);
+    return result;
   }
 }

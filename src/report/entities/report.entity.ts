@@ -9,6 +9,7 @@ import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../user/entities/user.entity';
 import { Product } from '../../product/entities/product.entity';
 import { ChatMessage } from '../../chat/entities/chat-message.entity';
+import { ChatRoom } from '../../chat/entities/chat-room.entity';
 import { ReportReason } from './report-reason.enum';
 import { ReportStatus } from './report-status.enum';
 
@@ -32,6 +33,10 @@ export class Report extends BaseEntity {
   @ManyToOne(() => ChatMessage, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'target_message_id' })
   targetMessage: ChatMessage | null;
+
+  @ManyToOne(() => ChatRoom, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'target_chat_id' })
+  targetChatRoom: ChatRoom | null;
 
   @Column({ type: 'enum', enum: ReportReason })
   reason: ReportReason;

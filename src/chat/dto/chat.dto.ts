@@ -57,7 +57,5 @@ export class ChatMessageResponse {
 
   isRead: boolean;
 
-  hidden: boolean;
-
   createdAt: Date;
 }

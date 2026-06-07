@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { ChatRoom } from './chat-room.entity';
 import { User } from '../../user/entities/user.entity';
@@ -22,10 +28,11 @@ export class ChatMessage extends BaseEntity {
   @Column({ name: 'is_read', type: 'boolean', default: false })
   isRead: boolean;
 
-  @Column({ type: 'boolean', default: false })
-  hidden: boolean;
-
-  static createMessage(chat: ChatRoom, sender: User, message: string): ChatMessage {
+  static createMessage(
+    chat: ChatRoom,
+    sender: User,
+    message: string,
+  ): ChatMessage {
     const cm = new ChatMessage();
     cm.chat = chat;
     cm.sender = sender;

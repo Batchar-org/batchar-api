@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Min,
   MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -13,6 +14,7 @@ export class ReportUserRequest {
   @Type(() => Number)
   @IsInt()
   @IsNotEmpty()
+  @Min(1)
   targetUserId: number;
 
   @IsEnum(ReportReason)
@@ -23,12 +25,19 @@ export class ReportUserRequest {
   @IsOptional()
   @MaxLength(500)
   description?: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @IsOptional()
+  @Min(1)
+  chatId?: number;
 }
 
 export class ReportProductRequest {
   @Type(() => Number)
   @IsInt()
   @IsNotEmpty()
+  @Min(1)
   targetProductId: number;
 
   @IsEnum(ReportReason)
@@ -45,6 +54,7 @@ export class ReportMessageRequest {
   @Type(() => Number)
   @IsInt()
   @IsNotEmpty()
+  @Min(1)
   targetMessageId: number;
 
   @IsEnum(ReportReason)

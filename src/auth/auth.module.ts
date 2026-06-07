@@ -12,12 +12,15 @@ import { RedisModule } from '../common/redis/redis.module';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([User]),
     forwardRef(() => UserModule),
     EmailModule,
     RedisModule,
     JwtModule.registerAsync({
       useFactory: () => ({
-        secret: process.env.JWT_SECRET || 'super-secret-key-please-change-in-production-environments-for-security',
+        secret:
+          process.env.JWT_SECRET ||
+          'super-secret-key-please-change-in-production-environments-for-security',
       }),
     }),
   ],
