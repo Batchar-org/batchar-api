@@ -4,5 +4,5 @@ export enum ProductStatus {
   FAILED = 'FAILED',
   TRADED = 'TRADED',
   CANCELED = 'CANCELED',
-  HIDDEN = 'HIDDEN',
+  DELETED = 'DELETED',
 }

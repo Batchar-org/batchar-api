@@ -7,11 +7,25 @@ import { User } from '../user/entities/user.entity';
 import { RefreshTokenService } from './refresh-token.service';
 import { EmailService } from '../common/email/email.service';
 import { BusinessException } from '../common/exceptions/business.exception';
-import { SignupRequest, SignupResponse, LoginRequest, LoginResponse, PasswordResetRequest, RefreshRequest, RefreshResponse } from './dto/auth.dto';
+import {
+  SignupRequest,
+  SignupResponse,
+  LoginRequest,
+  LoginResponse,
+  PasswordResetRequest,
+  RefreshRequest,
+  RefreshResponse,
+} from './dto/auth.dto';
+
+type AuthTokenPayload = {
+  sub: string;
+  tokenVersion?: number;
+};
 
 @Injectable()
 export class AuthService {
-  private static readonly ALPHANUMERIC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  private static readonly ALPHANUMERIC =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   private static readonly TEMP_PASSWORD_LENGTH = 12;
 
   constructor(
@@ -50,15 +64,23 @@ export class AuthService {
     user.password = hashedPassword;
     user.name = name;
     user.address = address;
+    user.suspendedAt = null;
+    user.suspendedUntil = null;
+    user.withdrawnAt = null;
+    user.isAdmin = false;
+    user.tokenVersion = 0;
 
     await this.userRepository.save(user);
 
     // 5. 토큰 발급
     const userId = user.id;
-    const accessToken = await this.createAccessToken(userId);
-    const refreshToken = await this.createRefreshToken(userId);
+    const accessToken = this.createAccessToken(user);
+    const refreshToken = this.createRefreshToken(user);
 
-    const refreshExpMs = parseInt(process.env.JWT_REFRESH_EXPIRATION || '1209600000', 10);
+    const refreshExpMs = parseInt(
+      process.env.JWT_REFRESH_EXPIRATION || '1209600000',
+      10,
+    );
     await this.refreshTokenService.save(refreshToken, userId, refreshExpMs);
 
     // 6. 인증 정보 삭제
@@ -80,11 +102,16 @@ export class AuthService {
       throw new BusinessException('INVALID_CREDENTIALS');
     }
 
-    const userId = user.id;
-    const accessToken = await this.createAccessToken(userId);
-    const refreshToken = await this.createRefreshToken(userId);
+    this.assertUserCanAuthenticate(user);
 
-    const refreshExpMs = parseInt(process.env.JWT_REFRESH_EXPIRATION || '1209600000', 10);
+    const userId = user.id;
+    const accessToken = this.createAccessToken(user);
+    const refreshToken = this.createRefreshToken(user);
+
+    const refreshExpMs = parseInt(
+      process.env.JWT_REFRESH_EXPIRATION || '1209600000',
+      10,
+    );
     await this.refreshTokenService.save(refreshToken, userId, refreshExpMs);
 
     return { userId, accessToken, refreshToken };
@@ -93,14 +120,16 @@ export class AuthService {
   async logout(refreshToken: string): Promise<void> {
     try {
       this.jwtService.verify(refreshToken);
-    } catch (e) {
+    } catch {
       throw new BusinessException('INVALID_TOKEN');
     }
     await this.refreshTokenService.delete(refreshToken);
   }
 
   async resetPassword(request: PasswordResetRequest): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { email: request.email } });
+    const user = await this.userRepository.findOne({
+      where: { email: request.email },
+    });
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -114,37 +143,68 @@ export class AuthService {
 
   async refresh(request: RefreshRequest): Promise<RefreshResponse> {
     const token = request.refreshToken;
+    let payload: AuthTokenPayload;
     try {
-      this.jwtService.verify(token);
-    } catch (e) {
+      payload = this.jwtService.verify<AuthTokenPayload>(token);
+    } catch {
       throw new BusinessException('INVALID_TOKEN');
     }
 
     const userId = await this.refreshTokenService.getUserId(token);
-    const accessToken = await this.createAccessToken(userId);
-    const refreshToken = await this.createRefreshToken(userId);
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BusinessException('USER_NOT_FOUND');
+    }
+    this.assertUserCanAuthenticate(user);
+    if (payload.tokenVersion !== user.tokenVersion) {
+      throw new BusinessException('INVALID_TOKEN');
+    }
 
-    const refreshExpMs = parseInt(process.env.JWT_REFRESH_EXPIRATION || '1209600000', 10);
+    const accessToken = this.createAccessToken(user);
+    const refreshToken = this.createRefreshToken(user);
+
+    const refreshExpMs = parseInt(
+      process.env.JWT_REFRESH_EXPIRATION || '1209600000',
+      10,
+    );
     await this.refreshTokenService.delete(token);
     await this.refreshTokenService.save(refreshToken, userId, refreshExpMs);
 
     return { accessToken, refreshToken };
   }
 
-  private async createAccessToken(userId: number): Promise<string> {
-    const expirationMs = parseInt(process.env.JWT_ACCESS_EXPIRATION || '1800000', 10);
+  private createAccessToken(user: User): string {
+    const expirationMs = parseInt(
+      process.env.JWT_ACCESS_EXPIRATION || '1800000',
+      10,
+    );
     return this.jwtService.sign(
-      { sub: String(userId) },
+      { sub: String(user.id), tokenVersion: user.tokenVersion },
       { expiresIn: `${Math.floor(expirationMs / 1000)}s` },
     );
   }
 
-  private async createRefreshToken(userId: number): Promise<string> {
-    const expirationMs = parseInt(process.env.JWT_REFRESH_EXPIRATION || '1209600000', 10);
+  private createRefreshToken(user: User): string {
+    const expirationMs = parseInt(
+      process.env.JWT_REFRESH_EXPIRATION || '1209600000',
+      10,
+    );
     return this.jwtService.sign(
-      { sub: String(userId) },
+      { sub: String(user.id), tokenVersion: user.tokenVersion },
       { expiresIn: `${Math.floor(expirationMs / 1000)}s` },
     );
+  }
+
+  private assertUserCanAuthenticate(user: User): void {
+    if (user.withdrawnAt) {
+      throw new BusinessException('USER_SUSPENDED');
+    }
+    if (user.isSuspended()) {
+      throw new BusinessException('USER_SUSPENDED', {
+        suspended_until: user.suspendedUntil?.toISOString(),
+        remaining_seconds: user.getSuspensionRemainingSeconds(),
+      });
+    }
   }
 
   private generateTempPassword(): string {

@@ -7,6 +7,7 @@ import { Wish } from '../wish/entities/wish.entity';
 import { Bid } from '../bid/entities/bid.entity';
 import { ProductService } from './product.service';
 import { ProductMediaService } from './product-media.service';
+import { ProductRetentionCleanupService } from './product-retention-cleanup.service';
 import { SseService } from './sse/sse.service';
 import { ProductController } from './product.controller';
 import { ProductSseController } from './product-sse.controller';
@@ -24,7 +25,12 @@ import { BlockModule } from '../block/block.module';
     BlockModule,
   ],
   controllers: [ProductController, ProductSseController],
-  providers: [ProductService, ProductMediaService, SseService],
+  providers: [
+    ProductService,
+    ProductMediaService,
+    ProductRetentionCleanupService,
+    SseService,
+  ],
   exports: [ProductService, ProductMediaService, SseService, TypeOrmModule],
 })
 export class ProductModule {}

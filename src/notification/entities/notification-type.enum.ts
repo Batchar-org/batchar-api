@@ -10,6 +10,7 @@ export enum NotificationType {
   AUCTION_SOLD = 'AUCTION_SOLD', // 낙찰 성사 (판매자)
   AUCTION_LOST = 'AUCTION_LOST', // 패찰 (낙찰되지 못한 입찰자)
   AUCTION_FAILED = 'AUCTION_FAILED', // 유찰 (판매자)
+  REPORT_CREATED = 'REPORT_CREATED', // 새 신고 접수 (관리자)
   REPORT_RESOLVED = 'REPORT_RESOLVED', // 신고 처리 완료 (신고자)
 }
 
@@ -33,4 +34,5 @@ export interface NotificationData {
   category: NotificationCategory;
   chatId?: number;
   productId?: number;
+  reportId?: number;
 }

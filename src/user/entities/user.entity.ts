@@ -18,17 +18,28 @@ export class User extends BaseEntity {
   @Column({ nullable: false })
   address: string;
 
-  @Column({ name: 'profile_image_url', type: 'varchar', length: 500, nullable: true })
+  @Column({
+    name: 'profile_image_url',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
   profileImageUrl: string | null;
 
   @Column({ name: 'suspended_at', type: 'timestamp', nullable: true })
   suspendedAt: Date | null;
+
+  @Column({ name: 'suspended_until', type: 'timestamp', nullable: true })
+  suspendedUntil: Date | null;
 
   @Column({ name: 'withdrawn_at', type: 'timestamp', nullable: true })
   withdrawnAt: Date | null;
 
   @Column({ name: 'is_admin', type: 'boolean', default: false })
   isAdmin: boolean;
+
+  @Column({ name: 'token_version', type: 'int', default: 0 })
+  tokenVersion: number;
 
   // 밭비옥도(0~100, %). 0.5 단위 증감을 정확히 저장하기 위해 DECIMAL 사용. 기본 30%.
   // TypeORM은 decimal을 문자열로 돌려주므로 transformer로 number로 변환한다.
@@ -50,10 +61,48 @@ export class User extends BaseEntity {
     this.address = '';
     this.password = '';
     this.withdrawnAt = new Date();
+    this.incrementTokenVersion();
   }
 
-  isActive(): boolean {
-    return this.suspendedAt == null && this.withdrawnAt == null;
+  suspendForDays(days: number, now = new Date()): void {
+    const baseTime =
+      this.suspendedUntil && this.suspendedUntil.getTime() > now.getTime()
+        ? this.suspendedUntil
+        : now;
+    const nextSuspendedUntil = new Date(baseTime.getTime());
+    nextSuspendedUntil.setDate(nextSuspendedUntil.getDate() + days);
+
+    this.suspendedAt = now;
+    this.suspendedUntil = nextSuspendedUntil;
+    this.incrementTokenVersion();
+  }
+
+  unsuspend(): void {
+    this.suspendedAt = null;
+    this.suspendedUntil = null;
+    this.incrementTokenVersion();
+  }
+
+  isSuspended(now = new Date()): boolean {
+    return (
+      !!this.suspendedUntil && this.suspendedUntil.getTime() > now.getTime()
+    );
+  }
+
+  isActive(now = new Date()): boolean {
+    return !this.isSuspended(now) && this.withdrawnAt == null;
+  }
+
+  getSuspensionRemainingSeconds(now = new Date()): number {
+    if (!this.suspendedUntil) return 0;
+    return Math.max(
+      0,
+      Math.ceil((this.suspendedUntil.getTime() - now.getTime()) / 1000),
+    );
+  }
+
+  private incrementTokenVersion(): void {
+    this.tokenVersion = (this.tokenVersion ?? 0) + 1;
   }
 
   canReceiveWater(): boolean {

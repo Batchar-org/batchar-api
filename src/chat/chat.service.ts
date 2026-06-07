@@ -35,7 +35,9 @@ export class ChatService {
 
   // 채팅방에서 발신자가 아닌 상대 참여자를 반환한다.
   private getRecipient(chatRoom: ChatRoom, senderId: number): User {
-    return Number(chatRoom.seller.id) === Number(senderId) ? chatRoom.buyer : chatRoom.seller;
+    return Number(chatRoom.seller.id) === Number(senderId)
+      ? chatRoom.buyer
+      : chatRoom.seller;
   }
 
   // 상대 참여자에게 채팅 알림을 보낸다. 차단 관계이거나 수신자가 방을 나간(삭제) 경우에는 보내지 않는다.
@@ -51,7 +53,9 @@ export class ChatService {
 
       // 수신자가 채팅방을 나갔으면(목록에서도 숨겨진 상태) 알림하지 않음
       const recipientLeftRoom =
-        Number(chatRoom.seller.id) === recipientId ? chatRoom.sellerDeleted : chatRoom.buyerDeleted;
+        Number(chatRoom.seller.id) === recipientId
+          ? chatRoom.sellerDeleted
+          : chatRoom.buyerDeleted;
       if (recipientLeftRoom) {
         return;
       }
@@ -69,7 +73,10 @@ export class ChatService {
         preview,
       });
     } catch (e) {
-      this.logger.error(`Failed to notify chat recipient for chat=${chatRoom.id}`, e);
+      this.logger.error(
+        `Failed to notify chat recipient for chat=${chatRoom.id}`,
+        e,
+      );
     }
   }
 
@@ -101,9 +108,15 @@ export class ChatService {
       const partnerName = partner.name;
       const partnerFertility = Number(partner.fertility);
       const partnerProfileImageUrl = partner.profileImageUrl;
-      const myConfirmed = isSeller ? chatRoom.sellerConfirmed : chatRoom.buyerConfirmed;
-      const partnerConfirmed = isSeller ? chatRoom.buyerConfirmed : chatRoom.sellerConfirmed;
-      const partnerLeft = isSeller ? chatRoom.buyerDeleted : chatRoom.sellerDeleted;
+      const myConfirmed = isSeller
+        ? chatRoom.sellerConfirmed
+        : chatRoom.buyerConfirmed;
+      const partnerConfirmed = isSeller
+        ? chatRoom.buyerConfirmed
+        : chatRoom.sellerConfirmed;
+      const partnerLeft = isSeller
+        ? chatRoom.buyerDeleted
+        : chatRoom.sellerDeleted;
 
       const lastMsgEntity = await this.chatMessageRepository.findOne({
         where: { chat: { id: chatRoom.id } },
@@ -111,7 +124,9 @@ export class ChatService {
       });
       const lastMessage = lastMsgEntity ? lastMsgEntity.message : '';
 
-      const productImageUrl = await this.productMediaService.getFirstMediaUrl(chatRoom.product.id);
+      const productImageUrl = await this.productMediaService.getFirstMediaUrl(
+        chatRoom.product.id,
+      );
 
       const unreadCount = await this.chatMessageRepository.count({
         where: {
@@ -121,10 +136,11 @@ export class ChatService {
         },
       });
 
-      const { iBlocked, blockedByPartner } = await this.blockService.getBlockDirection(
-        Number(userId),
-        Number(partner.id),
-      );
+      const { iBlocked, blockedByPartner } =
+        await this.blockService.getBlockDirection(
+          Number(userId),
+          Number(partner.id),
+        );
 
       responses.push({
         chatId: Number(chatRoom.id),
@@ -149,10 +165,16 @@ export class ChatService {
       });
     }
 
-    return responses.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    return responses.sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
+    );
   }
 
-  async sendMessage(chatId: number, userId: number, content: string): Promise<ChatMessageResponse> {
+  async sendMessage(
+    chatId: number,
+    userId: number,
+    content: string,
+  ): Promise<ChatMessageResponse> {
     const chatRoom = await this.chatRoomRepository.findOne({
       where: { id: chatId },
       relations: { seller: true, buyer: true, product: true },
@@ -180,7 +202,6 @@ export class ChatService {
       senderProfileImageUrl: user.profileImageUrl,
       content: chatMessage.message,
       isRead: chatMessage.isRead,
-      hidden: chatMessage.hidden,
       createdAt: chatMessage.createdAt,
     };
 
@@ -193,7 +214,10 @@ export class ChatService {
     return response;
   }
 
-  async enterChatRoom(chatId: number, userId: number): Promise<ChatMessageResponse[]> {
+  async enterChatRoom(
+    chatId: number,
+    userId: number,
+  ): Promise<ChatMessageResponse[]> {
     const chatRoom = await this.chatRoomRepository.findOne({
       where: { id: chatId },
       relations: { seller: true, buyer: true },
@@ -231,7 +255,6 @@ export class ChatService {
       senderProfileImageUrl: m.sender.profileImageUrl,
       content: m.message,
       isRead: m.isRead,
-      hidden: m.hidden,
       createdAt: m.createdAt,
     }));
   }
@@ -259,7 +282,11 @@ export class ChatService {
     }
   }
 
-  async sendMedia(chatId: number, userId: number, file: Express.Multer.File): Promise<ChatMessageResponse> {
+  async sendMedia(
+    chatId: number,
+    userId: number,
+    file: Express.Multer.File,
+  ): Promise<ChatMessageResponse> {
     const chatRoom = await this.chatRoomRepository.findOne({
       where: { id: chatId },
       relations: { seller: true, buyer: true, product: true },
@@ -288,7 +315,6 @@ export class ChatService {
       senderProfileImageUrl: user.profileImageUrl,
       content: chatMessage.message,
       isRead: chatMessage.isRead,
-      hidden: chatMessage.hidden,
       createdAt: chatMessage.createdAt,
     };
 
@@ -296,7 +322,12 @@ export class ChatService {
     await this.bidGateway.broadcastChatMessage(chatId, response);
 
     // 푸시/인앱 알림 발송 (상대 참여자에게, 차단/방나감 가드 후 fire-and-forget)
-    void this.notifyChatRecipient(chatRoom, userId, user.name, '사진을 보냈어요');
+    void this.notifyChatRecipient(
+      chatRoom,
+      userId,
+      user.name,
+      '사진을 보냈어요',
+    );
 
     return response;
   }

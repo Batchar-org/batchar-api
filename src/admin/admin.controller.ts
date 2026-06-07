@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
   HttpCode,
+  Delete,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminGuard } from './admin.guard';
@@ -32,18 +33,11 @@ export class AdminController {
     return { data: null, message: '사용자의 정지를 해제했습니다.' };
   }
 
-  @Post('products/:productId/hide')
+  @Delete('products/:productId')
   @HttpCode(200)
-  async hideProduct(@Param('productId') productId: number) {
-    await this.adminService.hideProduct(Number(productId));
-    return { data: null, message: '상품을 숨김 처리했습니다.' };
-  }
-
-  @Post('messages/:messageId/hide')
-  @HttpCode(200)
-  async hideChatMessage(@Param('messageId') messageId: number) {
-    await this.adminService.hideChatMessage(Number(messageId));
-    return { data: null, message: '메시지를 숨김 처리했습니다.' };
+  async deleteProduct(@Param('productId') productId: number) {
+    await this.adminService.deleteProduct(Number(productId));
+    return { data: null, message: '상품을 삭제했습니다.' };
   }
 
   @Get('reports')
@@ -51,6 +45,13 @@ export class AdminController {
   async listReports(@Query() request: ReportListRequest) {
     const data = await this.adminService.listReports(request);
     return { data, message: '신고 목록을 조회했습니다.' };
+  }
+
+  @Get('reports/:reportId')
+  @HttpCode(200)
+  async getReportDetail(@Param('reportId') reportId: number) {
+    const data = await this.adminService.getReportDetail(Number(reportId));
+    return { data, message: '신고 상세를 조회했습니다.' };
   }
 
   @Post('reports/:reportId/resolve')

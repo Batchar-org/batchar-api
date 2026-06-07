@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../user/entities/user.entity';
 import { ProductStatus } from './product-status.enum';
@@ -44,6 +50,9 @@ export class Product extends BaseEntity {
   @Column({ name: 'end_time', type: 'timestamp', nullable: false })
   endTime: Date;
 
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
+
   static create(
     seller: User,
     title: string,
@@ -63,10 +72,16 @@ export class Product extends BaseEntity {
     product.status = ProductStatus.ON_SALE;
     product.startTime = new Date();
     product.endTime = endTime;
+    product.deletedAt = null;
     return product;
   }
 
-  updateInfo(title?: string, description?: string, category?: string, endTime?: Date): void {
+  updateInfo(
+    title?: string,
+    description?: string,
+    category?: string,
+    endTime?: Date,
+  ): void {
     if (title) this.title = title;
     if (description) this.description = description;
     if (category) this.category = category;
@@ -78,7 +93,10 @@ export class Product extends BaseEntity {
   }
 
   isOnSale(): boolean {
-    return this.status === ProductStatus.ON_SALE && this.endTime.getTime() > Date.now();
+    return (
+      this.status === ProductStatus.ON_SALE &&
+      this.endTime.getTime() > Date.now()
+    );
   }
 
   isSeller(userId: number): boolean {
@@ -105,5 +123,10 @@ export class Product extends BaseEntity {
 
   markAsTraded(): void {
     this.status = ProductStatus.TRADED;
+  }
+
+  markAsDeleted(now = new Date()): void {
+    this.status = ProductStatus.DELETED;
+    if (!this.deletedAt) this.deletedAt = now;
   }
 }

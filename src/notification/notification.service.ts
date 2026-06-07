@@ -272,6 +272,31 @@ export class NotificationService {
     );
   }
 
+  async notifyReportCreated(params: { reportId: number }): Promise<void> {
+    try {
+      const admins = await this.userRepository.find({
+        where: { isAdmin: true },
+      });
+
+      await Promise.all(
+        admins.map((admin) =>
+          this.dispatch(
+            Number(admin.id),
+            NotificationType.REPORT_CREATED,
+            '새 신고가 접수되었어요',
+            `관리자 페이지에서 신고 #${params.reportId}을(를) 확인해 주세요.`,
+            { category: 'report', reportId: params.reportId },
+          ),
+        ),
+      );
+    } catch (e) {
+      this.logger.error(
+        `Failed to notify admins for report=${params.reportId}`,
+        e,
+      );
+    }
+  }
+
   // ==================== 내부 발송 파이프라인 ====================
 
   /**
