@@ -131,6 +131,7 @@ export class ChatService {
         productId: Number(chatRoom.product.id),
         productTitle: chatRoom.product.title,
         productPrice: Number(chatRoom.product.currentPrice),
+        partnerId: Number(partner.id),
         partnerName,
         partnerFertility,
         partnerProfileImageUrl,

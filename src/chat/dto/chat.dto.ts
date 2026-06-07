@@ -9,6 +9,8 @@ export class ChatListResponse {
 
   productPrice: number;
 
+  partnerId: number;
+
   partnerName: string;
 
   partnerFertility: number;
