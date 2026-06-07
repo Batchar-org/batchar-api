@@ -9,6 +9,24 @@ import { Logger } from 'nestjs-pino';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
 
+const DEFAULT_CORS_ORIGINS = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://batchar.vercel.app',
+];
+
+function parseCorsOrigins(): string[] {
+  const configuredOrigins = process.env.CORS_ORIGINS?.split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+  return configuredOrigins?.length ? configuredOrigins : DEFAULT_CORS_ORIGINS;
+}
+
+function isCorsEnabled(): boolean {
+  return process.env.CORS_ENABLED !== 'false';
+}
+
 async function bootstrap() {
   // bufferLogs: 커스텀 로거가 준비되기 전의 부팅 로그를 모아뒀다가 한 번에 출력
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
@@ -30,13 +48,23 @@ async function bootstrap() {
     next();
   });
 
-  // CORS 설정 (Spring Security와 동일한 패턴 매핑)
-  app.enableCors({
-    origin: '*',
-    credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: '*',
-  });
+  // CORS 설정 (관리자 웹과 로컬 개발 서버 허용)
+  // nginx 등 앞단 프록시에서 CORS를 처리하는 배포 환경에서는 CORS_ENABLED=false로 비활성화한다.
+  if (isCorsEnabled()) {
+    app.enableCors({
+      origin: parseCorsOrigins(),
+      credentials: true,
+      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+      allowedHeaders: ['Content-Type', 'Authorization', 'Refresh-Token'],
+    });
+  } else {
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      if (req.method === 'OPTIONS') {
+        return res.status(204).send();
+      }
+      next();
+    });
+  }
 
   // 글로벌 인터셉터 / 필터 / 검증 파이프 등록
   app.useGlobalInterceptors(new SnakeCaseInterceptor());
