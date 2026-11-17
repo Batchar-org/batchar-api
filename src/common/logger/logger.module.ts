@@ -5,7 +5,7 @@ import type { IncomingMessage } from 'node:http';
 
 // express가 붙이는 필드 + 인증 가드가 넣는 user (pino-http는 IncomingMessage로만 타입을 줌)
 type AppRequest = IncomingMessage & {
-  user?: { userId?: number };
+  user?: { id: number };
   originalUrl?: string;
 };
 
@@ -55,7 +55,7 @@ const prettyLogs = !isProd || process.env.LOG_PRETTY === 'true';
 
         // 인증된 요청이면 누가 보냈는지(userId)도 함께 기록.
         customProps: (req) => ({
-          userId: (req as AppRequest).user?.userId,
+          userId: (req as AppRequest).user?.id,
         }),
 
         // 상태코드에 따라 로그 레벨 자동 분기 (4xx=warn, 5xx/에러=error).
