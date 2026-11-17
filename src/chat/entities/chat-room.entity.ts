@@ -5,7 +5,6 @@ import {
   ManyToOne,
   OneToOne,
   JoinColumn,
-  BaseEntity as TypeOrmBaseEntity,
 } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { Product } from '../../product/entities/product.entity';

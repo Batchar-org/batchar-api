@@ -11,8 +11,10 @@ import camelcaseKeys from 'camelcase-keys';
 
 @Injectable()
 export class SnakeCaseInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest();
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const request = context
+      .switchToHttp()
+      .getRequest<{ body?: unknown; query?: Record<string, unknown> }>();
 
     // 1. 들어오는 요청 객체(Body, Query)의 키를 snake_case에서 camelCase로 변환
     if (
@@ -22,7 +24,9 @@ export class SnakeCaseInterceptor implements NestInterceptor {
     ) {
       // Multipart/Form-data 파일 등 변환이 불필요한 특수 객체 필터링
       const parsedBody = this.cleanObjectForCamelcase(request.body);
-      request.body = camelcaseKeys(parsedBody, { deep: true });
+      request.body = camelcaseKeys(parsedBody as Record<string, unknown>, {
+        deep: true,
+      });
     }
 
     // Express 5의 req.query는 getter-only이므로 defineProperty로 우회
@@ -42,9 +46,9 @@ export class SnakeCaseInterceptor implements NestInterceptor {
 
     // 2. 나가는 응답 객체의 키를 camelCase에서 snake_case로 변환
     return next.handle().pipe(
-      map((data) => {
+      map((data: unknown) => {
         if (data && typeof data === 'object') {
-          return snakecaseKeys(data, { deep: true });
+          return snakecaseKeys(data as Record<string, unknown>, { deep: true });
         }
         return data;
       }),
@@ -52,21 +56,26 @@ export class SnakeCaseInterceptor implements NestInterceptor {
   }
 
   // Multer File과 같이 바이너리 버퍼나 스트림을 담고 있을 수 있는 특수 데이터 필드들을 제외한 객체를 정제합니다.
-  private cleanObjectForCamelcase(obj: any): any {
+  private cleanObjectForCamelcase(obj: unknown): unknown {
     if (Array.isArray(obj)) {
-      return obj.map((item) => this.cleanObjectForCamelcase(item));
+      return obj.map((item: unknown) => this.cleanObjectForCamelcase(item));
     }
     if (obj !== null && typeof obj === 'object') {
-      const cleanObj: any = {};
-      for (const key of Object.keys(obj)) {
-        const val = obj[key];
+      const cleanObj: Record<string, unknown> = {};
+      for (const [key, val] of Object.entries(obj)) {
+        // ponytail: 파일 객체 판별용 덕타이핑 뷰 (런타임 동작은 기존과 동일)
+        const file = val as {
+          buffer?: unknown;
+          pipe?: unknown;
+          fieldname?: unknown;
+        };
         // Buffer 객체나 file 필드는 원본을 유지합니다.
         if (
           val &&
           (Buffer.isBuffer(val) ||
-            val.buffer ||
-            typeof val.pipe === 'function' ||
-            val.fieldname)
+            file.buffer ||
+            typeof file.pipe === 'function' ||
+            file.fieldname)
         ) {
           cleanObj[key] = val;
         } else {

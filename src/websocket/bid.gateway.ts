@@ -44,32 +44,38 @@ export class BidGateway
     private readonly jwtService: JwtService,
   ) {}
 
-  afterInit(server: Server) {
+  afterInit() {
     this.logger.log('WebSocket Gateway Initialized with WsAdapter');
   }
 
-  handleConnection(client: WebSocket, ...args: any[]) {
+  handleConnection(client: WebSocket) {
     this.logger.log('Client connected to WebSocket');
     this.clientSubscriptions.set(client, []);
 
-    client.on('message', async (data: any) => {
-      let rawMessage = '';
-      if (Buffer.isBuffer(data)) {
-        rawMessage = data.toString('utf8');
-      } else if (typeof data === 'string') {
-        rawMessage = data;
-      }
+    client.on('message', (data: unknown) => void this.onMessage(client, data));
+  }
 
-      try {
-        const frame = this.parseStompFrame(rawMessage);
-        if (!frame) return;
+  private async onMessage(client: WebSocket, data: unknown) {
+    let rawMessage = '';
+    if (Buffer.isBuffer(data)) {
+      rawMessage = data.toString('utf8');
+    } else if (typeof data === 'string') {
+      rawMessage = data;
+    }
 
-        await this.handleStompFrame(client, frame);
-      } catch (err) {
-        this.logger.error('Failed to handle STOMP frame', err);
-        this.sendErrorFrame(client, 'Failed to process message', err.message);
-      }
-    });
+    try {
+      const frame = this.parseStompFrame(rawMessage);
+      if (!frame) return;
+
+      await this.handleStompFrame(client, frame);
+    } catch (err) {
+      this.logger.error('Failed to handle STOMP frame', err);
+      this.sendErrorFrame(
+        client,
+        'Failed to process message',
+        (err as Error).message,
+      );
+    }
   }
 
   handleDisconnect(client: WebSocket) {
@@ -159,7 +165,9 @@ export class BidGateway
 
         const token = authHeader.replace(/^Bearer\s+/i, '');
         try {
-          const payload = this.jwtService.verify(token);
+          const payload = this.jwtService.verify<{ sub: string | number }>(
+            token,
+          );
           const userId = Number(payload.sub);
           this.clientUsers.set(client, userId);
           this.logger.log(`Client authenticated. UserID: ${userId}`);
@@ -248,7 +256,7 @@ export class BidGateway
           }
 
           try {
-            const parsedBody = JSON.parse(body);
+            const parsedBody = JSON.parse(body) as { message?: string };
             const content = parsedBody.message;
             if (!content) {
               this.sendErrorFrame(
@@ -269,7 +277,7 @@ export class BidGateway
             this.sendErrorFrame(
               client,
               'Message transmission failed',
-              err.message,
+              (err as Error).message,
             );
           }
         } else {
@@ -299,6 +307,8 @@ export class BidGateway
   }
 
   // 입찰 발생 시 실시간 브로드캐스트
+  // async 유지: 동기 예외도 rejection으로 바꿔 호출부 .catch()/await에서 처리되게 함
+  // oxlint-disable-next-line typescript/require-await
   async broadcastBid(productId: number, data: BidBroadcast): Promise<void> {
     const destination = `/topic/products/${productId}`;
     this.logger.log(`Broadcasting bid to ${destination}`);
@@ -312,7 +322,8 @@ export class BidGateway
     this.broadcastToTopic(destination, snakeCasedData);
   }
 
-  // 채팅 메시지 전송 시 실시간 브로드캐스트
+  // 채팅 메시지 전송 시 실시간 브로드캐스트 (async 유지 이유는 broadcastBid와 동일)
+  // oxlint-disable-next-line typescript/require-await
   async broadcastChatMessage(
     chatId: number,
     data: ChatMessageResponse,

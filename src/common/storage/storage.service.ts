@@ -3,6 +3,7 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  S3ClientConfig,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
@@ -31,7 +32,7 @@ export class StorageService {
       10,
     );
 
-    const s3Config: any = {
+    const s3Config: S3ClientConfig = {
       region: this.region,
       credentials: {
         accessKeyId: process.env.S3_ACCESS_KEY || 'mock-access-key',

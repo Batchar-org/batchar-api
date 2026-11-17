@@ -1,6 +1,13 @@
 import { Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
+import type { IncomingMessage } from 'node:http';
+
+// express가 붙이는 필드 + 인증 가드가 넣는 user (pino-http는 IncomingMessage로만 타입을 줌)
+type AppRequest = IncomingMessage & {
+  user?: { userId?: number };
+  originalUrl?: string;
+};
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -48,7 +55,7 @@ const prettyLogs = !isProd || process.env.LOG_PRETTY === 'true';
 
         // 인증된 요청이면 누가 보냈는지(userId)도 함께 기록.
         customProps: (req) => ({
-          userId: (req as any).user?.userId,
+          userId: (req as AppRequest).user?.userId,
         }),
 
         // 상태코드에 따라 로그 레벨 자동 분기 (4xx=warn, 5xx/에러=error).
@@ -60,16 +67,22 @@ const prettyLogs = !isProd || process.env.LOG_PRETTY === 'true';
 
         // 로그 한 줄에 보이는 메시지 (예: "POST /api/auth/login 200").
         customSuccessMessage: (req, res) =>
-          `${req.method} ${(req as any).originalUrl ?? req.url} ${res.statusCode}`,
+          `${req.method} ${(req as AppRequest).originalUrl ?? req.url} ${res.statusCode}`,
         customErrorMessage: (req, res) =>
-          `${req.method} ${(req as any).originalUrl ?? req.url} ${res.statusCode}`,
+          `${req.method} ${(req as AppRequest).originalUrl ?? req.url} ${res.statusCode}`,
 
         // 로그에 남길 필드를 화이트리스트로 제한 (헤더 전체·바디·에러 커스텀 속성 등 노이즈/민감정보 차단).
         serializers: {
-          req: (req) => ({ id: req.id, method: req.method, url: req.url }),
-          res: (res) => ({ statusCode: res.statusCode }),
-          err: (err) => ({
-            type: (err as any).type ?? err.name,
+          req: (req: { id: unknown; method: string; url: string }) => ({
+            id: req.id,
+            method: req.method,
+            url: req.url,
+          }),
+          res: (res: { statusCode: number }) => ({
+            statusCode: res.statusCode,
+          }),
+          err: (err: Error & { type?: string }) => ({
+            type: err.type ?? err.name,
             message: err.message,
             stack: err.stack,
           }),

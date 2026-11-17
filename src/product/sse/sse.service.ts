@@ -4,19 +4,19 @@ import { map } from 'rxjs/operators';
 
 @Injectable()
 export class SseService {
-  private emitters = new Map<number, Subject<any>>();
+  private emitters = new Map<number, Subject<MessageEvent['data']>>();
 
   subscribe(productId: number): Observable<MessageEvent> {
     if (!this.emitters.has(productId)) {
-      this.emitters.set(productId, new Subject<any>());
+      this.emitters.set(productId, new Subject<MessageEvent['data']>());
     }
     return this.emitters
       .get(productId)!
       .asObservable()
-      .pipe(map((data) => ({ data }) as MessageEvent));
+      .pipe(map((data): MessageEvent => ({ data })));
   }
 
-  send(productId: number, data: any) {
+  send(productId: number, data: MessageEvent['data']) {
     const emitter = this.emitters.get(productId);
     if (emitter) {
       emitter.next(data);

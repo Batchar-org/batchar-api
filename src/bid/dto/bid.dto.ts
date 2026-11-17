@@ -1,6 +1,7 @@
 import { IsInt, IsNotEmpty, IsOptional, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { BidStatus } from '../entities/bid-status.enum';
+import type { Bid } from '../entities/bid.entity';
 
 export class BidCreateRequest {
   @Type(() => Number)
@@ -19,7 +20,7 @@ export class BidResponse {
 
   createdAt: Date;
 
-  static from(bid: any): BidResponse {
+  static from(bid: Bid): BidResponse {
     return {
       id: bid.id,
       price: Number(bid.price),
@@ -36,7 +37,7 @@ export class BidSummary {
 
   createdAt: Date;
 
-  static from(bid: any): BidSummary {
+  static from(bid: Bid): BidSummary {
     return {
       price: Number(bid.price),
       bidderName: bid.bidder.name,

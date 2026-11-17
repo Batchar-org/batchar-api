@@ -12,7 +12,9 @@ export class AdminGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
+    const request = context
+      .switchToHttp()
+      .getRequest<{ user?: { id: number } }>();
     const userId = request.user?.id;
     if (!userId) {
       throw new BusinessException('UNAUTHORIZED');

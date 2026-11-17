@@ -3,7 +3,6 @@ import { DataSource, EntityManager } from 'typeorm';
 import { Product } from '../product/entities/product.entity';
 import { ProductStatus } from '../product/entities/product-status.enum';
 import { Bid } from '../bid/entities/bid.entity';
-import { BidStatus } from '../bid/entities/bid-status.enum';
 import { ChatService } from '../chat/chat.service';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { NotificationService } from '../notification/notification.service';

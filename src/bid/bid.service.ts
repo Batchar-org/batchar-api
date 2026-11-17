@@ -186,7 +186,7 @@ export class BidService {
     const hasNext = bids.length > size;
     const slicedBids = hasNext ? bids.slice(0, size) : bids;
 
-    const content = slicedBids.map(BidSummary.from);
+    const content = slicedBids.map((bid) => BidSummary.from(bid));
 
     return {
       content,

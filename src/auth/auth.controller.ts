@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Header,
-  Headers,
-  HttpCode,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Headers, HttpCode, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { EmailService } from '../common/email/email.service';
 import {
