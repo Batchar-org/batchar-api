@@ -10,8 +10,8 @@ import { User } from '../../user/entities/user.entity';
 import { Product } from '../../product/entities/product.entity';
 import { ChatMessage } from '../../chat/entities/chat-message.entity';
 import { ChatRoom } from '../../chat/entities/chat-room.entity';
-import { ReportReason } from './report-reason.enum';
-import { ReportStatus } from './report-status.enum';
+import { ReportReason } from '../enum/report-reason.enum';
+import { ReportStatus } from '../enum/report-status.enum';
 
 @Entity({ name: 'reports' })
 export class Report extends BaseEntity {

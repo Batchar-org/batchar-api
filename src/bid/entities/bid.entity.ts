@@ -8,7 +8,7 @@ import {
 import { BaseEntity } from '../../common/entities/base.entity';
 import { Product } from '../../product/entities/product.entity';
 import { User } from '../../user/entities/user.entity';
-import { BidStatus } from './bid-status.enum';
+import { BidStatus } from '../enum/bid-status.enum';
 
 @Entity({ name: 'bids' })
 export class Bid extends BaseEntity {

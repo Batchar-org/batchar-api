@@ -8,7 +8,10 @@ import {
 } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../user/entities/user.entity';
-import { NotificationType, NotificationData } from './notification-type.enum';
+import {
+  NotificationType,
+  NotificationData,
+} from '../enum/notification-type.enum';
 
 /**
  * 인앱 알림함 이력. 푸시 발송 여부와 무관하게(설정 OFF여도) 항상 적재되며, unread-count/배지의 소스가 된다.

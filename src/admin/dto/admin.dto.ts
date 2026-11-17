@@ -1,7 +1,7 @@
 import { IsEnum, IsInt, IsNotEmpty, IsOptional, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ReportReason } from '../../report/entities/report-reason.enum';
-import { ReportStatus } from '../../report/entities/report-status.enum';
+import { ReportReason } from '../../report/enum/report-reason.enum';
+import { ReportStatus } from '../../report/enum/report-status.enum';
 
 export class ReportListRequest {
   @IsEnum(ReportStatus)

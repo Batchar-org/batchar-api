@@ -1,6 +1,6 @@
 import { IsInt, IsOptional, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ProductStatus } from '../../product/entities/product-status.enum';
+import { ProductStatus } from '../../product/enum/product-status.enum';
 
 export class WishSummary {
   id: number;

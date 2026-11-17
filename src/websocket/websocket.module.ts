@@ -1,5 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { BidGateway } from './bid.gateway';
+import { BidGateway } from './gateway/bid.gateway';
 import { AuthModule } from '../auth/auth.module';
 import { ChatModule } from '../chat/chat.module';
 

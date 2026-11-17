@@ -7,9 +7,9 @@ import {
   Min,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { ProductStatus } from '../entities/product-status.enum';
-import { ProductViewType } from '../entities/product-view-type.enum';
-import { ProductMediaType } from '../entities/product-media-type.enum';
+import { ProductStatus } from '../enum/product-status.enum';
+import { ProductViewType } from '../enum/product-view-type.enum';
+import { ProductMediaType } from '../enum/product-media-type.enum';
 
 export class ProductResponse {
   id: number;

@@ -4,8 +4,8 @@ import { User } from './entities/user.entity';
 import { Product } from '../product/entities/product.entity';
 import { Bid } from '../bid/entities/bid.entity';
 import { Wish } from '../wish/entities/wish.entity';
-import { UserService } from './user.service';
-import { UserController } from './user.controller';
+import { UserService } from './service/user.service';
+import { UserController } from './controller/user.controller';
 import { AuthModule } from '../auth/auth.module';
 import { StorageModule } from '../common/storage/storage.module';
 

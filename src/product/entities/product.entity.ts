@@ -7,7 +7,7 @@ import {
 } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../user/entities/user.entity';
-import { ProductStatus } from './product-status.enum';
+import { ProductStatus } from '../enum/product-status.enum';
 
 @Entity({ name: 'products' })
 export class Product extends BaseEntity {

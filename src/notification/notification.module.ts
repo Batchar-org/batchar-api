@@ -4,9 +4,9 @@ import { DeviceToken } from './entities/device-token.entity';
 import { Notification } from './entities/notification.entity';
 import { NotificationSetting } from './entities/notification-setting.entity';
 import { User } from '../user/entities/user.entity';
-import { NotificationService } from './notification.service';
-import { ExpoPushService } from './push/expo-push.service';
-import { NotificationController } from './notification.controller';
+import { NotificationService } from './service/notification.service';
+import { ExpoPushService } from './service/expo-push.service';
+import { NotificationController } from './controller/notification.controller';
 
 /**
  * 알림은 bid/auction/chat/admin 등 다수 도메인에서 호출하는 횡단 관심사이며,

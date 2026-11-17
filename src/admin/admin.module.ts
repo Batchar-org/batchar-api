@@ -3,9 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
 import { ChatMessage } from '../chat/entities/chat-message.entity';
 import { Report } from '../report/entities/report.entity';
-import { AdminService } from './admin.service';
-import { AdminController } from './admin.controller';
-import { AdminGuard } from './admin.guard';
+import { AdminService } from './service/admin.service';
+import { AdminController } from './controller/admin.controller';
+import { AdminGuard } from './guard/admin.guard';
 import { ProductModule } from '../product/product.module';
 
 @Module({

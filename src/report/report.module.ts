@@ -5,8 +5,8 @@ import { User } from '../user/entities/user.entity';
 import { Product } from '../product/entities/product.entity';
 import { ChatMessage } from '../chat/entities/chat-message.entity';
 import { ChatRoom } from '../chat/entities/chat-room.entity';
-import { ReportService } from './report.service';
-import { ReportController } from './report.controller';
+import { ReportService } from './service/report.service';
+import { ReportController } from './controller/report.controller';
 
 @Module({
   imports: [

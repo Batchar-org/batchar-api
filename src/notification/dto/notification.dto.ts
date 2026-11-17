@@ -11,7 +11,7 @@ import { Notification } from '../entities/notification.entity';
 import {
   NotificationType,
   NotificationData,
-} from '../entities/notification-type.enum';
+} from '../enum/notification-type.enum';
 
 export class RegisterDeviceTokenRequest {
   @IsString()

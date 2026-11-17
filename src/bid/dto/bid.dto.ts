@@ -1,6 +1,6 @@
 import { IsInt, IsNotEmpty, IsOptional, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { BidStatus } from '../entities/bid-status.enum';
+import { BidStatus } from '../enum/bid-status.enum';
 import type { Bid } from '../entities/bid.entity';
 
 export class BidCreateRequest {

@@ -6,7 +6,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Product } from './product.entity';
-import { ProductMediaType } from './product-media-type.enum';
+import { ProductMediaType } from '../enum/product-media-type.enum';
 
 @Entity({ name: 'product_media' })
 export class ProductMedia {

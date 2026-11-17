@@ -8,7 +8,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ReportReason } from '../entities/report-reason.enum';
+import { ReportReason } from '../enum/report-reason.enum';
 
 export class ReportUserRequest {
   @Type(() => Number)
