@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Param,
-  UseGuards,
-  HttpCode,
-  ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Post, Param, UseGuards, HttpCode } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -20,10 +13,7 @@ export class FertilityController {
   @UseGuards(JwtAuthGuard)
   @Post(':chatId/water')
   @HttpCode(200)
-  async water(
-    @Param('chatId', ParseIntPipe) chatId: number,
-    @CurrentUser() userId: number,
-  ) {
+  async water(@Param('chatId') chatId: number, @CurrentUser() userId: number) {
     const fertility = await this.fertilityService.react(
       userId,
       chatId,
@@ -36,7 +26,7 @@ export class FertilityController {
   @Post(':chatId/acid-rain')
   @HttpCode(200)
   async acidRain(
-    @Param('chatId', ParseIntPipe) chatId: number,
+    @Param('chatId') chatId: number,
     @CurrentUser() userId: number,
   ) {
     const fertility = await this.fertilityService.react(

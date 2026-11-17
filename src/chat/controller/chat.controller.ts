@@ -9,7 +9,6 @@ import {
   UseInterceptors,
   UploadedFile,
   HttpCode,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 
@@ -38,7 +37,7 @@ export class ChatController {
   @Post(':chatId/messages')
   @HttpCode(201)
   async sendMessage(
-    @Param('chatId', ParseIntPipe) chatId: number,
+    @Param('chatId') chatId: number,
     @CurrentUser() userId: number,
     @Body() request: ChatMessageRequest,
   ) {
@@ -57,7 +56,7 @@ export class ChatController {
   @Get(':chatId/messages')
   @HttpCode(200)
   async enterChatRoom(
-    @Param('chatId', ParseIntPipe) chatId: number,
+    @Param('chatId') chatId: number,
     @CurrentUser() userId: number,
   ) {
     const data = await this.chatService.enterChatRoom(chatId, userId);
@@ -71,7 +70,7 @@ export class ChatController {
   @Delete(':chatId')
   @HttpCode(200)
   async deleteChatRoom(
-    @Param('chatId', ParseIntPipe) chatId: number,
+    @Param('chatId') chatId: number,
     @CurrentUser() userId: number,
   ) {
     await this.chatService.deleteChatRoom(chatId, userId);
@@ -86,7 +85,7 @@ export class ChatController {
   @Post(':chatId/media')
   @HttpCode(201)
   async sendMedia(
-    @Param('chatId', ParseIntPipe) chatId: number,
+    @Param('chatId') chatId: number,
     @CurrentUser() userId: number,
     @UploadedFile() file: Express.Multer.File,
   ) {
@@ -101,7 +100,7 @@ export class ChatController {
   @Post(':chatId/complete')
   @HttpCode(200)
   async completeTrade(
-    @Param('chatId', ParseIntPipe) chatId: number,
+    @Param('chatId') chatId: number,
     @CurrentUser() userId: number,
   ) {
     await this.chatService.completeTrade(chatId, userId);
