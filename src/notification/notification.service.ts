@@ -107,7 +107,10 @@ export class NotificationService {
     );
   }
 
-  async deleteNotification(userId: number, notificationId: number): Promise<void> {
+  async deleteNotification(
+    userId: number,
+    notificationId: number,
+  ): Promise<void> {
     const result = await this.notificationRepository.delete({
       id: notificationId,
       user: { id: userId },

@@ -1,4 +1,13 @@
-import { Controller, Post, Get, Param, Body, Query, UseGuards, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  HttpCode,
+} from '@nestjs/common';
 import { BidService } from './bid.service';
 import { JwtAuthGuard } from '../auth/jwt/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -16,7 +25,11 @@ export class BidController {
     @Body() request: BidCreateRequest,
     @CurrentUser() bidderId: number,
   ) {
-    const data = await this.bidService.placeBid(Number(productId), bidderId, request);
+    const data = await this.bidService.placeBid(
+      Number(productId),
+      bidderId,
+      request,
+    );
     return {
       data,
       message: '입찰에 성공하였습니다.',

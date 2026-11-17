@@ -25,7 +25,9 @@ interface Subscription {
 
 @WebSocketGateway({ path: '/ws' })
 @Injectable()
-export class BidGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+export class BidGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
+{
   private readonly logger = new Logger(BidGateway.name);
 
   @WebSocketServer()
@@ -106,7 +108,11 @@ export class BidGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
   }
 
   // STOMP 프레임 빌드
-  private buildStompFrame(command: string, headers: Record<string, string>, body = ''): string {
+  private buildStompFrame(
+    command: string,
+    headers: Record<string, string>,
+    body = '',
+  ): string {
     let frame = `${command}\n`;
     for (const [key, val] of Object.entries(headers)) {
       frame += `${key}:${val}\n`;
@@ -137,9 +143,16 @@ export class BidGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
     switch (command) {
       case 'CONNECT': {
         // Authorization header 검증
-        const authHeader = headers['Authorization'] || headers['authorization'] || headers['passcode']; 
+        const authHeader =
+          headers['Authorization'] ||
+          headers['authorization'] ||
+          headers['passcode'];
         if (!authHeader) {
-          this.sendErrorFrame(client, 'Missing credentials', 'Authorization header is required');
+          this.sendErrorFrame(
+            client,
+            'Missing credentials',
+            'Authorization header is required',
+          );
           client.close();
           return;
         }
@@ -158,7 +171,10 @@ export class BidGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
           });
           client.send(connectedFrame);
         } catch (err) {
-          this.logger.error('JWT Token verification failed in WebSocket CONNECT', err);
+          this.logger.error(
+            'JWT Token verification failed in WebSocket CONNECT',
+            err,
+          );
           this.sendErrorFrame(client, 'Authentication failed', 'Invalid token');
           client.close();
         }
@@ -169,7 +185,11 @@ export class BidGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
         const destination = headers['destination'];
         const id = headers['id'] || destination;
         if (!destination) {
-          this.sendErrorFrame(client, 'Missing destination', 'SUBSCRIBE requires destination header');
+          this.sendErrorFrame(
+            client,
+            'Missing destination',
+            'SUBSCRIBE requires destination header',
+          );
           return;
         }
 
@@ -185,7 +205,11 @@ export class BidGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
       case 'UNSUBSCRIBE': {
         const id = headers['id'];
         if (!id) {
-          this.sendErrorFrame(client, 'Missing subscription ID', 'UNSUBSCRIBE requires id header');
+          this.sendErrorFrame(
+            client,
+            'Missing subscription ID',
+            'UNSUBSCRIBE requires id header',
+          );
           return;
         }
 
@@ -201,7 +225,11 @@ export class BidGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
       case 'SEND': {
         const destination = headers['destination'];
         if (!destination) {
-          this.sendErrorFrame(client, 'Missing destination', 'SEND requires destination header');
+          this.sendErrorFrame(
+            client,
+            'Missing destination',
+            'SEND requires destination header',
+          );
           return;
         }
 
@@ -211,7 +239,11 @@ export class BidGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
           const chatId = parseInt(chatMatch[1], 10);
           const userId = this.clientUsers.get(client);
           if (!userId) {
-            this.sendErrorFrame(client, 'Unauthenticated', 'Please CONNECT first');
+            this.sendErrorFrame(
+              client,
+              'Unauthenticated',
+              'Please CONNECT first',
+            );
             return;
           }
 
@@ -219,18 +251,33 @@ export class BidGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
             const parsedBody = JSON.parse(body);
             const content = parsedBody.message;
             if (!content) {
-              this.sendErrorFrame(client, 'Empty message', 'message property is required in JSON body');
+              this.sendErrorFrame(
+                client,
+                'Empty message',
+                'message property is required in JSON body',
+              );
               return;
             }
 
             // 비즈니스 로직 연동 (메시지 저장 및 내부에서 broadcastChatMessage 호출)
             await this.chatService.sendMessage(chatId, userId, content);
           } catch (err) {
-            this.logger.error(`Failed to handle SEND for destination ${destination}`, err);
-            this.sendErrorFrame(client, 'Message transmission failed', err.message);
+            this.logger.error(
+              `Failed to handle SEND for destination ${destination}`,
+              err,
+            );
+            this.sendErrorFrame(
+              client,
+              'Message transmission failed',
+              err.message,
+            );
           }
         } else {
-          this.sendErrorFrame(client, 'Invalid destination', `SEND destination ${destination} is not supported`);
+          this.sendErrorFrame(
+            client,
+            'Invalid destination',
+            `SEND destination ${destination} is not supported`,
+          );
         }
         break;
       }
@@ -242,7 +289,11 @@ export class BidGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
       }
 
       default:
-        this.sendErrorFrame(client, 'Unknown command', `STOMP command ${command} is not supported`);
+        this.sendErrorFrame(
+          client,
+          'Unknown command',
+          `STOMP command ${command} is not supported`,
+        );
         break;
     }
   }
@@ -262,7 +313,10 @@ export class BidGateway implements OnGatewayConnection, OnGatewayDisconnect, OnG
   }
 
   // 채팅 메시지 전송 시 실시간 브로드캐스트
-  async broadcastChatMessage(chatId: number, data: ChatMessageResponse): Promise<void> {
+  async broadcastChatMessage(
+    chatId: number,
+    data: ChatMessageResponse,
+  ): Promise<void> {
     const destination = `/topic/chat/${chatId}`;
     this.logger.log(`Broadcasting chat message to ${destination}`);
 

@@ -40,7 +40,11 @@ export class ChatController {
     @CurrentUser() userId: number,
     @Body() request: ChatMessageRequest,
   ) {
-    const data = await this.chatService.sendMessage(chatId, userId, request.message);
+    const data = await this.chatService.sendMessage(
+      chatId,
+      userId,
+      request.message,
+    );
     return {
       data,
       message: '메시지를 전송했습니다.',

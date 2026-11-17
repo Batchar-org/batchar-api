@@ -30,11 +30,7 @@ export class EmailService {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Redis에 5분간 저장 (5분 = 300초)
-    await this.redisService.set(
-      EmailService.VERIFY_PREFIX + email,
-      code,
-      300,
-    );
+    await this.redisService.set(EmailService.VERIFY_PREFIX + email, code, 300);
 
     await this.sendMail(
       email,
@@ -44,7 +40,9 @@ export class EmailService {
   }
 
   async verifyEmailCode(email: string, code: string): Promise<void> {
-    const savedCode = await this.redisService.get(EmailService.VERIFY_PREFIX + email);
+    const savedCode = await this.redisService.get(
+      EmailService.VERIFY_PREFIX + email,
+    );
 
     if (!savedCode || code !== savedCode) {
       throw new BusinessException('INVALID_VERIFICATION_CODE');
@@ -70,7 +68,9 @@ export class EmailService {
   }
 
   async isVerified(email: string): Promise<boolean> {
-    const verified = await this.redisService.get(EmailService.VERIFIED_PREFIX + email);
+    const verified = await this.redisService.get(
+      EmailService.VERIFIED_PREFIX + email,
+    );
     return verified !== null;
   }
 
@@ -78,7 +78,11 @@ export class EmailService {
     await this.redisService.delete(EmailService.VERIFIED_PREFIX + email);
   }
 
-  private async sendMail(to: string, subject: string, html: string): Promise<void> {
+  private async sendMail(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<void> {
     try {
       await this.mailerService.sendMail({
         to,

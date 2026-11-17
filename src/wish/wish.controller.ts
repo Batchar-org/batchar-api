@@ -1,4 +1,13 @@
-import { Controller, Post, Delete, Get, Param, Query, UseGuards, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Delete,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+} from '@nestjs/common';
 import { WishService } from './wish.service';
 import { JwtAuthGuard } from '../auth/jwt/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';

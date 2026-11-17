@@ -10,7 +10,12 @@ import { Wish } from '../wish/entities/wish.entity';
 import { RefreshTokenService } from '../auth/refresh-token.service';
 import { StorageService } from '../common/storage/storage.service';
 import { BusinessException } from '../common/exceptions/business.exception';
-import { UserMeResponse, UpdateUserRequest, PasswordVerifyRequest, ChangePasswordRequest } from './dto/user.dto';
+import {
+  UserMeResponse,
+  UpdateUserRequest,
+  PasswordVerifyRequest,
+  ChangePasswordRequest,
+} from './dto/user.dto';
 
 @Injectable()
 export class UserService {
@@ -50,7 +55,10 @@ export class UserService {
     return UserMeResponse.from(user);
   }
 
-  async updateProfileImage(userId: number, image: Express.Multer.File): Promise<UserMeResponse> {
+  async updateProfileImage(
+    userId: number,
+    image: Express.Multer.File,
+  ): Promise<UserMeResponse> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
@@ -89,7 +97,10 @@ export class UserService {
     });
   }
 
-  async patchMe(userId: number, request: UpdateUserRequest): Promise<UserMeResponse> {
+  async patchMe(
+    userId: number,
+    request: UpdateUserRequest,
+  ): Promise<UserMeResponse> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
@@ -109,7 +120,10 @@ export class UserService {
     return UserMeResponse.from(user);
   }
 
-  async verifyPassword(userId: number, request: PasswordVerifyRequest): Promise<void> {
+  async verifyPassword(
+    userId: number,
+    request: PasswordVerifyRequest,
+  ): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
@@ -121,13 +135,19 @@ export class UserService {
     }
   }
 
-  async changePassword(userId: number, request: ChangePasswordRequest): Promise<void> {
+  async changePassword(
+    userId: number,
+    request: ChangePasswordRequest,
+  ): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
 
-    const isMatch = await bcrypt.compare(request.currentPassword, user.password);
+    const isMatch = await bcrypt.compare(
+      request.currentPassword,
+      user.password,
+    );
     if (!isMatch) {
       throw new BusinessException('INVALID_PASSWORD');
     }
@@ -150,7 +170,10 @@ export class UserService {
     }
 
     const existsActiveBid = await this.bidRepository.findOne({
-      where: { bidder: { id: userId }, product: { status: ProductStatus.ON_SALE } },
+      where: {
+        bidder: { id: userId },
+        product: { status: ProductStatus.ON_SALE },
+      },
     });
     if (existsActiveBid) {
       throw new BusinessException('HAS_ACTIVE_BID');

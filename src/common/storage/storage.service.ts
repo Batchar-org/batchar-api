@@ -1,7 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { PresignedUrlRequest, PresignedUrlResponse } from './dto/presigned-url.dto';
+import {
+  PresignedUrlRequest,
+  PresignedUrlResponse,
+} from './dto/presigned-url.dto';
 import { BusinessException } from '../exceptions/business.exception';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -19,7 +26,10 @@ export class StorageService {
     this.bucket = process.env.S3_BUCKET || 'batchar-bucket';
     this.endpoint = process.env.S3_ENDPOINT || 'http://localhost:4566';
     this.region = process.env.S3_REGION || 'us-east-1';
-    this.expiration = parseInt(process.env.S3_PRESIGNED_EXPIRATION || '3600', 10);
+    this.expiration = parseInt(
+      process.env.S3_PRESIGNED_EXPIRATION || '3600',
+      10,
+    );
 
     const s3Config: any = {
       region: this.region,
@@ -79,7 +89,9 @@ export class StorageService {
     }
   }
 
-  async generatePresignedUrl(request: PresignedUrlRequest): Promise<PresignedUrlResponse> {
+  async generatePresignedUrl(
+    request: PresignedUrlRequest,
+  ): Promise<PresignedUrlResponse> {
     try {
       const ext = request.fileName.substring(request.fileName.lastIndexOf('.'));
       const today = new Date().toISOString().split('T')[0];

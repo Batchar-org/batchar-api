@@ -86,7 +86,10 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Patch('me')
   @HttpCode(200)
-  async patchMe(@CurrentUser() userId: number, @Body() request: UpdateUserRequest) {
+  async patchMe(
+    @CurrentUser() userId: number,
+    @Body() request: UpdateUserRequest,
+  ) {
     const data = await this.userService.patchMe(userId, request);
     return {
       data,

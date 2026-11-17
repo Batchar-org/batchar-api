@@ -15,7 +15,11 @@ export class FertilityService {
   ) {}
 
   // 채팅 상대의 비옥도에 액션(물 주기 +0.5 / 산성비 -0.5)을 거래당 1회 적용한다.
-  async react(giverId: number, chatId: number, action: FertilityAction): Promise<number> {
+  async react(
+    giverId: number,
+    chatId: number,
+    action: FertilityAction,
+  ): Promise<number> {
     return this.dataSource.transaction(async (manager) => {
       const chatRoom = await manager.findOne(ChatRoom, {
         where: { id: chatId },
@@ -35,7 +39,9 @@ export class FertilityService {
       // 발신자는 버튼을 누른 사람, 수신자는 상대 참여자(비옥도 적용 대상).
       const isGiverSeller = Number(chatRoom.seller.id) === Number(giverId);
       const giver = isGiverSeller ? chatRoom.seller : chatRoom.buyer;
-      const receiverId = isGiverSeller ? Number(chatRoom.buyer.id) : Number(chatRoom.seller.id);
+      const receiverId = isGiverSeller
+        ? Number(chatRoom.buyer.id)
+        : Number(chatRoom.seller.id);
 
       // 차단 관계(양방향)면 평가할 수 없다.
       if (await this.blockService.isBlocked(giverId, receiverId)) {
@@ -73,7 +79,12 @@ export class FertilityService {
       }
       await manager.save(receiver);
 
-      const log = manager.create(FertilityLog, { giver, receiver, chatRoom, action });
+      const log = manager.create(FertilityLog, {
+        giver,
+        receiver,
+        chatRoom,
+        action,
+      });
       await manager.save(log);
 
       return receiver.fertility;

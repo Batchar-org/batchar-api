@@ -4,7 +4,13 @@ import { DataSource, Repository } from 'typeorm';
 import { Bid } from './entities/bid.entity';
 import { Product } from '../product/entities/product.entity';
 import { User } from '../user/entities/user.entity';
-import { BidCreateRequest, BidListRequest, BidResponse, BidSummary, BidBroadcast } from './dto/bid.dto';
+import {
+  BidCreateRequest,
+  BidListRequest,
+  BidResponse,
+  BidSummary,
+  BidBroadcast,
+} from './dto/bid.dto';
 import { SseService } from '../product/sse/sse.service';
 import { BlockService } from '../block/block.service';
 import { BusinessException } from '../common/exceptions/business.exception';
@@ -32,14 +38,20 @@ export class BidService {
     private readonly notificationService: NotificationService,
   ) {}
 
-  async placeBid(productId: number, bidderId: number, request: BidCreateRequest): Promise<BidResponse> {
+  async placeBid(
+    productId: number,
+    bidderId: number,
+    request: BidCreateRequest,
+  ): Promise<BidResponse> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
       // 1. 입찰자 검증
-      const bidder = await queryRunner.manager.findOne(User, { where: { id: bidderId } });
+      const bidder = await queryRunner.manager.findOne(User, {
+        where: { id: bidderId },
+      });
       if (!bidder) {
         throw new BusinessException('USER_NOT_FOUND');
       }
@@ -66,7 +78,9 @@ export class BidService {
       }
 
       // 차단 관계(양방향)인 판매자의 상품에는 입찰 불가
-      if (await this.blockService.isBlocked(bidderId, Number(product.seller.id))) {
+      if (
+        await this.blockService.isBlocked(bidderId, Number(product.seller.id))
+      ) {
         throw new BusinessException('BLOCKED');
       }
 
@@ -108,7 +122,10 @@ export class BidService {
 
       // WebSocket STOMP 알림 발송
       this.bidGateway.broadcastBid(productId, broadcast).catch((err) => {
-        this.logger.error(`WebSocket broadcast failed for product=${productId}`, err);
+        this.logger.error(
+          `WebSocket broadcast failed for product=${productId}`,
+          err,
+        );
       });
 
       // 푸시/인앱 알림 발송 (커밋 후 fire-and-forget, 내부에서 예외를 격리함)
@@ -120,7 +137,10 @@ export class BidService {
         price: request.price,
       });
 
-      if (previousHighestBid && Number(previousHighestBid.bidder.id) !== bidderId) {
+      if (
+        previousHighestBid &&
+        Number(previousHighestBid.bidder.id) !== bidderId
+      ) {
         void this.notificationService.notifyOutbid({
           previousBidderId: Number(previousHighestBid.bidder.id),
           productId,
@@ -132,7 +152,10 @@ export class BidService {
       return BidResponse.from(bid);
     } catch (e) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to place bid for product=${productId} by bidder=${bidderId}`, e);
+      this.logger.error(
+        `Failed to place bid for product=${productId} by bidder=${bidderId}`,
+        e,
+      );
       throw e;
     } finally {
       await queryRunner.release();
@@ -144,7 +167,9 @@ export class BidService {
     const skip = page * size;
     const take = size + 1;
 
-    const exists = await this.productRepository.exists({ where: { id: productId } });
+    const exists = await this.productRepository.exists({
+      where: { id: productId },
+    });
     if (!exists) {
       throw new BusinessException('PRODUCT_NOT_FOUND');
     }

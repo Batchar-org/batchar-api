@@ -4,10 +4,7 @@ import { AuthModule } from '../auth/auth.module';
 import { ChatModule } from '../chat/chat.module';
 
 @Module({
-  imports: [
-    forwardRef(() => AuthModule),
-    forwardRef(() => ChatModule),
-  ],
+  imports: [forwardRef(() => AuthModule), forwardRef(() => ChatModule)],
   providers: [BidGateway],
   exports: [BidGateway],
 })

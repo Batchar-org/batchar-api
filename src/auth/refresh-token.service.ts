@@ -8,7 +8,11 @@ export class RefreshTokenService {
 
   constructor(private readonly redisService: RedisService) {}
 
-  async save(refreshToken: string, userId: number, expirationMs: number): Promise<void> {
+  async save(
+    refreshToken: string,
+    userId: number,
+    expirationMs: number,
+  ): Promise<void> {
     await this.redisService.setMs(
       RefreshTokenService.PREFIX + refreshToken,
       String(userId),
@@ -17,7 +21,9 @@ export class RefreshTokenService {
   }
 
   async getUserId(refreshToken: string): Promise<number> {
-    const userIdStr = await this.redisService.get(RefreshTokenService.PREFIX + refreshToken);
+    const userIdStr = await this.redisService.get(
+      RefreshTokenService.PREFIX + refreshToken,
+    );
     if (!userIdStr) {
       throw new BusinessException('INVALID_TOKEN');
     }

@@ -44,7 +44,11 @@ export class ProductController {
     @UploadedFiles() files: Express.Multer.File[],
     @CurrentUser() sellerId: number,
   ) {
-    const data = await this.productService.createProduct(sellerId, request, files);
+    const data = await this.productService.createProduct(
+      sellerId,
+      request,
+      files,
+    );
     return {
       data,
       message: '상품이 등록되었습니다.',
@@ -72,7 +76,10 @@ export class ProductController {
     @Param('productId') productId: number,
     @CurrentUser() userId: number | null,
   ) {
-    const data = await this.productService.getProductDetail(Number(productId), userId);
+    const data = await this.productService.getProductDetail(
+      Number(productId),
+      userId,
+    );
     return {
       data,
       message: '상품 상세 정보를 조회했습니다.',
@@ -89,7 +96,12 @@ export class ProductController {
     @UploadedFiles() files: Express.Multer.File[] = [],
     @CurrentUser() userId: number,
   ) {
-    const data = await this.productService.updateProduct(Number(productId), userId, request, files);
+    const data = await this.productService.updateProduct(
+      Number(productId),
+      userId,
+      request,
+      files,
+    );
     return {
       data,
       message: '상품 정보를 수정했습니다.',
@@ -103,7 +115,10 @@ export class ProductController {
     @Param('productId') productId: number,
     @CurrentUser() userId: number,
   ) {
-    const data = await this.productService.deleteProduct(Number(productId), userId);
+    const data = await this.productService.deleteProduct(
+      Number(productId),
+      userId,
+    );
     return {
       data,
       message: '상품을 삭제했습니다.',
@@ -117,7 +132,10 @@ export class ProductController {
     @Param('productId') productId: number,
     @CurrentUser() userId: number,
   ) {
-    await this.auctionCloseManager.closeAuctionManually(Number(productId), userId);
+    await this.auctionCloseManager.closeAuctionManually(
+      Number(productId),
+      userId,
+    );
     return {
       data: null,
       message: '경매가 마감되었습니다.',

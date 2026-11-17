@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne, JoinColumn, BaseEntity as TypeOrmBaseEntity } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToOne,
+  JoinColumn,
+  BaseEntity as TypeOrmBaseEntity,
+} from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { Product } from '../../product/entities/product.entity';
 import { User } from '../../user/entities/user.entity';
@@ -54,7 +62,10 @@ export class ChatRoom extends BaseEntity {
   }
 
   isParticipant(userId: number): boolean {
-    return Number(this.seller.id) === Number(userId) || Number(this.buyer.id) === Number(userId);
+    return (
+      Number(this.seller.id) === Number(userId) ||
+      Number(this.buyer.id) === Number(userId)
+    );
   }
 
   markAsDeleted(userId: number): void {

@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Product } from './product.entity';
 import { ProductMediaType } from './product-media-type.enum';
 
@@ -21,7 +27,11 @@ export class ProductMedia {
   })
   mediaType: ProductMediaType;
 
-  static from(product: Product, mediaUrl: string, mediaType: ProductMediaType): ProductMedia {
+  static from(
+    product: Product,
+    mediaUrl: string,
+    mediaType: ProductMediaType,
+  ): ProductMedia {
     const pm = new ProductMedia();
     pm.product = product;
     pm.mediaUrl = mediaUrl;

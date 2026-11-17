@@ -10,9 +10,10 @@ export class SseService {
     if (!this.emitters.has(productId)) {
       this.emitters.set(productId, new Subject<any>());
     }
-    return this.emitters.get(productId)!.asObservable().pipe(
-      map((data) => ({ data } as MessageEvent)),
-    );
+    return this.emitters
+      .get(productId)!
+      .asObservable()
+      .pipe(map((data) => ({ data }) as MessageEvent));
   }
 
   send(productId: number, data: any) {

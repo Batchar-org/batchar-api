@@ -26,7 +26,9 @@ export class ProductMediaService {
     if (!files || files.length === 0) return;
 
     // 호출자의 트랜잭션 매니저가 넘어오면 같은 트랜잭션에 참여한다 (기본 풀로 빠지면 FK 락 대기 데드락 발생).
-    const repository = manager ? manager.getRepository(ProductMedia) : this.productMediaRepository;
+    const repository = manager
+      ? manager.getRepository(ProductMedia)
+      : this.productMediaRepository;
 
     for (const file of files) {
       const mediaUrl = await this.storageService.upload(file);
@@ -44,7 +46,9 @@ export class ProductMediaService {
     return media ? media.mediaUrl : null;
   }
 
-  async getMediaInfoByProductId(productId: number): Promise<ProductMediaInfo[]> {
+  async getMediaInfoByProductId(
+    productId: number,
+  ): Promise<ProductMediaInfo[]> {
     const mediaList = await this.productMediaRepository.find({
       where: { product: { id: productId } },
       order: { id: 'ASC' },
@@ -79,7 +83,9 @@ export class ProductMediaService {
     deleteMediaIds: number[],
     manager?: EntityManager,
   ): Promise<void> {
-    const repository = manager ? manager.getRepository(ProductMedia) : this.productMediaRepository;
+    const repository = manager
+      ? manager.getRepository(ProductMedia)
+      : this.productMediaRepository;
 
     const mediaList = await repository.find({
       where: { id: In(deleteMediaIds), product: { id: productId } },
@@ -96,8 +102,13 @@ export class ProductMediaService {
     await repository.remove(mediaList);
   }
 
-  async deleteAllByProductId(productId: number, manager?: EntityManager): Promise<void> {
-    const repository = manager ? manager.getRepository(ProductMedia) : this.productMediaRepository;
+  async deleteAllByProductId(
+    productId: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repository = manager
+      ? manager.getRepository(ProductMedia)
+      : this.productMediaRepository;
 
     const mediaList = await repository.find({
       where: { product: { id: productId } },

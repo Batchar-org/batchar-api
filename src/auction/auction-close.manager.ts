@@ -37,7 +37,9 @@ export class AuctionCloseManager {
       }
 
       if (lockedProduct.status !== ProductStatus.ON_SALE) {
-        this.logger.log(`[중복 마감 방지] 이미 마감된 경매 productId=${productId} status=${lockedProduct.status}`);
+        this.logger.log(
+          `[중복 마감 방지] 이미 마감된 경매 productId=${productId} status=${lockedProduct.status}`,
+        );
         await queryRunner.rollbackTransaction();
         return;
       }
@@ -53,7 +55,9 @@ export class AuctionCloseManager {
         lockedProduct.closeAsFailed();
         await queryRunner.manager.save(lockedProduct);
         await queryRunner.commitTransaction();
-        this.logger.log(`[경매 유찰] 입찰자가 없어 유찰 처리되었습니다. productId=${productId}`);
+        this.logger.log(
+          `[경매 유찰] 입찰자가 없어 유찰 처리되었습니다. productId=${productId}`,
+        );
 
         // 유찰 알림 (전이를 실제 수행한 이 경로에서만 발송 → 정확히 1회)
         this.dispatchAuctionFailed({
@@ -81,10 +85,16 @@ export class AuctionCloseManager {
 
       // 패찰자(낙찰자 제외) 목록을 커밋 전에 수집
       const winnerId = Number(highestBid.bidder.id);
-      const loserIds = await this.collectLoserIds(queryRunner.manager, productId, winnerId);
+      const loserIds = await this.collectLoserIds(
+        queryRunner.manager,
+        productId,
+        winnerId,
+      );
 
       await queryRunner.commitTransaction();
-      this.logger.log(`[경매 낙찰 성공] productId=${productId} 낙찰자Id=${highestBid.bidder.id} 낙찰가=${highestBid.price}`);
+      this.logger.log(
+        `[경매 낙찰 성공] productId=${productId} 낙찰자Id=${highestBid.bidder.id} 낙찰가=${highestBid.price}`,
+      );
 
       // 낙찰/판매자/패찰 알림 (전이를 실제 수행한 이 경로에서만 발송 → 정확히 1회)
       this.dispatchAuctionWon({
@@ -99,7 +109,10 @@ export class AuctionCloseManager {
       });
     } catch (e) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to close auction automatically for product=${productId}`, e);
+      this.logger.error(
+        `Failed to close auction automatically for product=${productId}`,
+        e,
+      );
       throw e;
     } finally {
       await queryRunner.release();
@@ -107,7 +120,10 @@ export class AuctionCloseManager {
   }
 
   // 2. 수동 마감용 (판매자가 직접 호출)
-  async closeAuctionManually(productId: number, sellerId: number): Promise<void> {
+  async closeAuctionManually(
+    productId: number,
+    sellerId: number,
+  ): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -137,7 +153,9 @@ export class AuctionCloseManager {
         lockedProduct.closeAsFailed();
         await queryRunner.manager.save(lockedProduct);
         await queryRunner.commitTransaction();
-        this.logger.log(`[경매 수동 유찰] 입찰자가 없어 유찰 처리되었습니다. productId=${productId}`);
+        this.logger.log(
+          `[경매 수동 유찰] 입찰자가 없어 유찰 처리되었습니다. productId=${productId}`,
+        );
 
         // 유찰 알림 (전이를 실제 수행한 이 경로에서만 발송 → 정확히 1회)
         this.dispatchAuctionFailed({
@@ -163,10 +181,16 @@ export class AuctionCloseManager {
 
       // 패찰자(낙찰자 제외) 목록을 커밋 전에 수집
       const winnerId = Number(highestBid.bidder.id);
-      const loserIds = await this.collectLoserIds(queryRunner.manager, productId, winnerId);
+      const loserIds = await this.collectLoserIds(
+        queryRunner.manager,
+        productId,
+        winnerId,
+      );
 
       await queryRunner.commitTransaction();
-      this.logger.log(`[경매 수동 낙찰 성공] productId=${productId} 낙찰자Id=${highestBid.bidder.id}`);
+      this.logger.log(
+        `[경매 수동 낙찰 성공] productId=${productId} 낙찰자Id=${highestBid.bidder.id}`,
+      );
 
       // 낙찰/판매자/패찰 알림 (전이를 실제 수행한 이 경로에서만 발송 → 정확히 1회)
       this.dispatchAuctionWon({
@@ -181,7 +205,10 @@ export class AuctionCloseManager {
       });
     } catch (e) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to close auction manually for product=${productId} by seller=${sellerId}`, e);
+      this.logger.error(
+        `Failed to close auction manually for product=${productId} by seller=${sellerId}`,
+        e,
+      );
       throw e;
     } finally {
       await queryRunner.release();
@@ -198,7 +225,9 @@ export class AuctionCloseManager {
       where: { product: { id: productId } },
       relations: { bidder: true },
     });
-    return [...new Set(bids.map((bid) => Number(bid.bidder.id)))].filter((id) => id !== winnerId);
+    return [...new Set(bids.map((bid) => Number(bid.bidder.id)))].filter(
+      (id) => id !== winnerId,
+    );
   }
 
   // 낙찰 결과 알림: 낙찰자 + 판매자 + 패찰자 전원 (커밋 후 fire-and-forget)

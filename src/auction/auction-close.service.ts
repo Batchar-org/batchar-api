@@ -32,7 +32,9 @@ export class AuctionCloseService {
         return;
       }
 
-      this.logger.log(`Found ${expiredProducts.length} expired products for closing. Starting closing process...`);
+      this.logger.log(
+        `Found ${expiredProducts.length} expired products for closing. Starting closing process...`,
+      );
       for (const product of expiredProducts) {
         try {
           await this.auctionCloseManager.closeAuction(product.id);
@@ -41,7 +43,10 @@ export class AuctionCloseService {
         }
       }
     } catch (e) {
-      this.logger.error('Failed to query expired products in backup scheduler', e);
+      this.logger.error(
+        'Failed to query expired products in backup scheduler',
+        e,
+      );
     }
   }
 }
