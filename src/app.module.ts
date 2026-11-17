@@ -25,15 +25,14 @@ import { LoggerConfigModule } from './common/logger/logger.module';
   imports: [
     LoggerConfigModule,
     TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: process.env.MYSQL_HOST || 'localhost',
-      port: parseInt(process.env.MYSQL_PORT || '3306', 10),
-      username: process.env.MYSQL_USER || 'root',
-      password: process.env.MYSQL_PASSWORD || '',
-      database: process.env.MYSQL_DATABASE || 'test',
+      type: 'postgres',
+      host: process.env.POSTGRES_HOST || 'localhost',
+      port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
+      username: process.env.POSTGRES_USER || 'postgres',
+      password: process.env.POSTGRES_PASSWORD || '',
+      database: process.env.POSTGRES_DB || 'test',
       autoLoadEntities: true,
       synchronize: true, // Spring Boot의 JPA ddl-auto: update 전략과 매핑
-      timezone: '+09:00', // 한국 표준시(KST) 타임존 설정
     }),
     ScheduleModule.forRoot(), // 스케줄러 기능 활성화
     RedisModule,

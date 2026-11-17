@@ -6,42 +6,43 @@ services:
       dockerfile: Dockerfile
     image: batchar-api:local
     container_name: batchar-nest-api
-    env_file: .env # JWT / S3 / MAIL / MYSQL_USER 등 모든 값 주입
+    env_file: .env # JWT / S3 / MAIL / POSTGRES_USER 등 모든 값 주입
     environment:
       TZ: Asia/Seoul
       # 로컬 도커 구동 시 컨테이너 로그(docker logs)를 사람이 읽기 좋은 pretty 포맷으로.
       # (실제 배포 이미지는 이 값이 없으므로 JSON 그대로 — 수집/검색 용이)
       LOG_PRETTY: "true"
-      # 컨테이너 간 통신은 서비스 이름 + 내부 포트 사용 (.env의 localhost/13306 값을 덮어씀)
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
+      # 컨테이너 간 통신은 서비스 이름 + 내부 포트 사용 (.env의 localhost/15432 값을 덮어씀)
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
     ports:
       # 호스트 노출 포트. 공용 서버에서 겹치면 .env에 APP_PORT 지정 (미지정 시 18080)
       - "${APP_PORT:-18080}:18080"
     depends_on:
-      mysql:
-        condition: service_healthy # mysql이 healthy 된 뒤에 app 기동
+      postgres:
+        condition: service_healthy # postgres가 healthy 된 뒤에 app 기동
       redis:
         condition: service_healthy
     restart: unless-stopped
 
-  # ── MySQL ────────────────────────────────────────────
-  mysql:
-    image: mysql:8.0
-    container_name: batchar-nest-mysql
-    env_file: .env
+  # ── PostgreSQL ───────────────────────────────────────
+  postgres:
+    image: postgres:17
+    container_name: batchar-nest-postgres
+    env_file: .env # POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB로 초기 DB·계정 생성
     environment:
       TZ: Asia/Seoul
+      PGTZ: Asia/Seoul
     ports:
-      # 앱은 내부 네트워크(mysql:3306)로 붙으므로 이 노출은 "DB 클라이언트로 직접 볼 때"만 필요.
-      # 공용 서버에서 13306이 겹치면 .env에 MYSQL_PUBLISH_PORT 지정 (미지정 시 13306)
-      - "${MYSQL_PUBLISH_PORT:-13306}:3306"
+      # 앱은 내부 네트워크(postgres:5432)로 붙으므로 이 노출은 "DB 클라이언트로 직접 볼 때"만 필요.
+      # 공용 서버에서 15432가 겹치면 .env에 POSTGRES_PUBLISH_PORT 지정 (미지정 시 15432)
+      - "${POSTGRES_PUBLISH_PORT:-15432}:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -65,5 +66,5 @@ services:
       retries: 10
 
 volumes:
-  mysql_data:
+  postgres_data:
   redis_data:
