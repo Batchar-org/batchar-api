@@ -3,28 +3,28 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { AdminModule } from './admin/admin.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuctionModule } from './auction/auction.module';
-import { AuthModule } from './auth/auth.module';
-import { BidModule } from './bid/bid.module';
-import { BlockModule } from './block/block.module';
-import { ChatModule } from './chat/chat.module';
-import { EmailModule } from './common/email/email.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { SnakeCaseInterceptor } from './common/interceptors/snake-case.interceptor';
-import { LoggerConfigModule } from './common/logger/logger.module';
 import { NumericParamPipe } from './common/pipes/numeric-param.pipe';
-import { RedisModule } from './common/redis/redis.module';
-import { StorageModule } from './common/storage/storage.module';
-import { FertilityModule } from './fertility/fertility.module';
-import { NotificationModule } from './notification/notification.module';
-import { ProductModule } from './product/product.module';
-import { ReportModule } from './report/report.module';
-import { UserModule } from './user/user.module';
-import { WebSocketModule } from './websocket/websocket.module';
-import { WishModule } from './wish/wish.module';
+import { EmailModule } from './infra/email/email.module';
+import { LoggerConfigModule } from './infra/logger/logger.module';
+import { RedisModule } from './infra/redis/redis.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { AuctionModule } from './modules/auction/auction.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { BidModule } from './modules/bid/bid.module';
+import { BlockModule } from './modules/block/block.module';
+import { ChatModule } from './modules/chat/chat.module';
+import { FertilityModule } from './modules/fertility/fertility.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { ProductModule } from './modules/product/product.module';
+import { ReportModule } from './modules/report/report.module';
+import { StorageApiModule } from './modules/storage/storage-api.module';
+import { UserModule } from './modules/user/user.module';
+import { WebSocketModule } from './modules/websocket/websocket.module';
+import { WishModule } from './modules/wish/wish.module';
 
 @Module({
   imports: [
@@ -44,7 +44,7 @@ import { WishModule } from './wish/wish.module';
     }),
     ScheduleModule.forRoot(), // 스케줄러 기능 활성화
     RedisModule,
-    StorageModule,
+    StorageApiModule,
     EmailModule,
     NotificationModule,
     AuctionModule,

@@ -1,4 +1,4 @@
-import './load-env'; // .env를 다른 모든 import보다 먼저 로드 (TypeORM forRoot가 process.env를 읽는 시점 문제 회피)
+import './config/load-env'; // .env를 다른 모든 import보다 먼저 로드 (TypeORM forRoot가 process.env를 읽는 시점 문제 회피)
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { WsAdapter } from '@nestjs/platform-ws';
@@ -7,24 +7,7 @@ import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 import { BusinessException } from './common/exceptions/business.exception';
-
-const DEFAULT_CORS_ORIGINS = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'https://batchar.vercel.app',
-];
-
-function parseCorsOrigins(): string[] {
-  const configuredOrigins = process.env.CORS_ORIGINS?.split(',')
-    .map((origin) => origin.trim().replace(/\/+$/, ''))
-    .filter(Boolean);
-
-  return configuredOrigins?.length ? configuredOrigins : DEFAULT_CORS_ORIGINS;
-}
-
-function isCorsEnabled(): boolean {
-  return process.env.CORS_ENABLED !== 'false';
-}
+import { isCorsEnabled, parseCorsOrigins } from './config/cors';
 
 async function bootstrap() {
   // bufferLogs: 커스텀 로거가 준비되기 전의 부팅 로그를 모아뒀다가 한 번에 출력
