@@ -15,7 +15,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ChatService } from '../service/chat.service';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { ChatMessageRequest } from '../dto/chat.dto';
+import { ChatMessageRequest } from '../dto/chat-message-request.dto';
 
 @Controller('api/chats')
 export class ChatController {

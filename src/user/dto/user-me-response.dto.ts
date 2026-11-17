@@ -1,4 +1,3 @@
-import { IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
 import { User } from '../entities/user.entity';
 
 export class UserMeResponse {
@@ -24,33 +23,4 @@ export class UserMeResponse {
     res.fertility = Number(user.fertility);
     return res;
   }
-}
-
-export class UpdateUserRequest {
-  @IsString()
-  @IsNotEmpty()
-  @IsOptional()
-  name?: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsOptional()
-  address?: string;
-}
-
-export class PasswordVerifyRequest {
-  @IsString()
-  @IsNotEmpty()
-  password: string;
-}
-
-export class ChangePasswordRequest {
-  @IsString()
-  @IsNotEmpty()
-  currentPassword: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @Length(6, 100)
-  newPassword: string;
 }

@@ -16,11 +16,9 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UserService } from '../service/user.service';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  UpdateUserRequest,
-  PasswordVerifyRequest,
-  ChangePasswordRequest,
-} from '../dto/user.dto';
+import { UpdateUserRequest } from '../dto/update-user-request.dto';
+import { PasswordVerifyRequest } from '../dto/password-verify-request.dto';
+import { ChangePasswordRequest } from '../dto/change-password-request.dto';
 
 @Controller('api/users')
 export class UserController {

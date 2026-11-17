@@ -1,5 +1,3 @@
-import { IsNotEmpty, IsString } from 'class-validator';
-
 export class ChatListResponse {
   chatId: number;
 
@@ -38,24 +36,4 @@ export class ChatListResponse {
   isSeller: boolean;
 
   partnerLeft: boolean;
-}
-
-export class ChatMessageRequest {
-  @IsString()
-  @IsNotEmpty()
-  message: string;
-}
-
-export class ChatMessageResponse {
-  messageId: number;
-
-  senderId: number;
-
-  senderProfileImageUrl: string | null;
-
-  content: string;
-
-  isRead: boolean;
-
-  createdAt: Date;
 }

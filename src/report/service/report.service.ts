@@ -9,11 +9,9 @@ import { ChatRoom } from '../../chat/entities/chat-room.entity';
 import { ReportReason } from '../enum/report-reason.enum';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { NotificationService } from '../../notification/service/notification.service';
-import {
-  ReportMessageRequest,
-  ReportProductRequest,
-  ReportUserRequest,
-} from '../dto/report.dto';
+import { ReportMessageRequest } from '../dto/report-message-request.dto';
+import { ReportProductRequest } from '../dto/report-product-request.dto';
+import { ReportUserRequest } from '../dto/report-user-request.dto';
 
 @Injectable()
 export class ReportService {

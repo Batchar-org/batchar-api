@@ -4,13 +4,11 @@ import { DataSource, Repository } from 'typeorm';
 import { Bid } from '../entities/bid.entity';
 import { Product } from '../../product/entities/product.entity';
 import { User } from '../../user/entities/user.entity';
-import {
-  BidCreateRequest,
-  BidListRequest,
-  BidResponse,
-  BidSummary,
-  BidBroadcast,
-} from '../dto/bid.dto';
+import { BidCreateRequest } from '../dto/bid-create-request.dto';
+import { BidListRequest } from '../dto/bid-list-request.dto';
+import { BidResponse } from '../dto/bid-response.dto';
+import { BidSummary } from '../dto/bid-summary.dto';
+import { BidBroadcast } from '../dto/bid-broadcast.dto';
 import { SseService } from '../../product/service/sse.service';
 import { BlockService } from '../../block/service/block.service';
 import { BusinessException } from '../../common/exceptions/business.exception';

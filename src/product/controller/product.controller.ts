@@ -17,11 +17,9 @@ import { ProductService } from '../service/product.service';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../auth/guard/optional-jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  ProductCreateRequest,
-  ProductListRequest,
-  ProductUpdateRequest,
-} from '../dto/product.dto';
+import { ProductCreateRequest } from '../dto/product-create-request.dto';
+import { ProductListRequest } from '../dto/product-list-request.dto';
+import { ProductUpdateRequest } from '../dto/product-update-request.dto';
 
 import { Inject, forwardRef } from '@nestjs/common';
 import { AuctionCloseManager } from '../../auction/service/auction-close.manager';

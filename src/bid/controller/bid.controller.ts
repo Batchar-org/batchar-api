@@ -11,7 +11,8 @@ import {
 import { BidService } from '../service/bid.service';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { BidCreateRequest, BidListRequest } from '../dto/bid.dto';
+import { BidCreateRequest } from '../dto/bid-create-request.dto';
+import { BidListRequest } from '../dto/bid-list-request.dto';
 
 @Controller('api/products/:productId/bids')
 export class BidController {

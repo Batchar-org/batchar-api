@@ -14,10 +14,8 @@ import { User } from '../../user/entities/user.entity';
 import { ReportStatus } from '../../report/enum/report-status.enum';
 import { ExpoPushService } from './expo-push.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
-import {
-  NotificationListRequest,
-  NotificationResponse,
-} from '../dto/notification.dto';
+import { NotificationListRequest } from '../dto/notification-list-request.dto';
+import { NotificationResponse } from '../dto/notification-response.dto';
 
 @Injectable()
 export class NotificationService {

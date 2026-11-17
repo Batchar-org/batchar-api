@@ -6,7 +6,7 @@ import { Product } from '../entities/product.entity';
 import { StorageService } from '../../common/storage/service/storage.service';
 import { getProductMediaTypeFromFileName } from '../enum/product-media-type.enum';
 import { BusinessException } from '../../common/exceptions/business.exception';
-import { ProductMediaInfo } from '../dto/product.dto';
+import { ProductMediaInfo } from '../dto/product-media-info.dto';
 
 @Injectable()
 export class ProductMediaService {

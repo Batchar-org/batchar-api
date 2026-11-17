@@ -32,37 +32,3 @@ export class ReportUserRequest {
   @Min(1)
   chatId?: number;
 }
-
-export class ReportProductRequest {
-  @Type(() => Number)
-  @IsInt()
-  @IsNotEmpty()
-  @Min(1)
-  targetProductId: number;
-
-  @IsEnum(ReportReason)
-  @IsNotEmpty()
-  reason: ReportReason;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(500)
-  description?: string;
-}
-
-export class ReportMessageRequest {
-  @Type(() => Number)
-  @IsInt()
-  @IsNotEmpty()
-  @Min(1)
-  targetMessageId: number;
-
-  @IsEnum(ReportReason)
-  @IsNotEmpty()
-  reason: ReportReason;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(500)
-  description?: string;
-}

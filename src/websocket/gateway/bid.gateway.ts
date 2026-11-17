@@ -9,8 +9,8 @@ import { Server, WebSocket } from 'ws';
 import { Inject, forwardRef, Logger, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ChatService } from '../../chat/service/chat.service';
-import { BidBroadcast } from '../../bid/dto/bid.dto';
-import { ChatMessageResponse } from '../../chat/dto/chat.dto';
+import { BidBroadcast } from '../../bid/dto/bid-broadcast.dto';
+import { ChatMessageResponse } from '../../chat/dto/chat-message-response.dto';
 
 interface StompFrame {
   command: string;

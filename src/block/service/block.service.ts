@@ -4,7 +4,7 @@ import { EntityManager, Repository } from 'typeorm';
 import { Block } from '../entities/block.entity';
 import { User } from '../../user/entities/user.entity';
 import { BusinessException } from '../../common/exceptions/business.exception';
-import { BlockSummary } from '../dto/block.dto';
+import { BlockSummary } from '../dto/block-summary.dto';
 
 @Injectable()
 export class BlockService {

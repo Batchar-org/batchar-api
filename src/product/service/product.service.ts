@@ -9,14 +9,12 @@ import { ProductMediaService } from './product-media.service';
 import { RedisService } from '../../common/redis/service/redis.service';
 import { BlockService } from '../../block/service/block.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
-import {
-  ProductResponse,
-  ProductCreateRequest,
-  ProductListRequest,
-  ProductSummary,
-  ProductDetailResponse,
-  ProductUpdateRequest,
-} from '../dto/product.dto';
+import { ProductResponse } from '../dto/product-response.dto';
+import { ProductCreateRequest } from '../dto/product-create-request.dto';
+import { ProductListRequest } from '../dto/product-list-request.dto';
+import { ProductSummary } from '../dto/product-summary.dto';
+import { ProductDetailResponse } from '../dto/product-detail-response.dto';
+import { ProductUpdateRequest } from '../dto/product-update-request.dto';
 import { ProductStatus } from '../enum/product-status.enum';
 import { ProductViewType, requiresAuth } from '../enum/product-view-type.enum';
 

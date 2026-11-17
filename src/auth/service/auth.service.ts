@@ -7,15 +7,13 @@ import { User } from '../../user/entities/user.entity';
 import { RefreshTokenService } from './refresh-token.service';
 import { EmailService } from '../../common/email/service/email.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
-import {
-  SignupRequest,
-  SignupResponse,
-  LoginRequest,
-  LoginResponse,
-  PasswordResetRequest,
-  RefreshRequest,
-  RefreshResponse,
-} from '../dto/auth.dto';
+import { SignupRequest } from '../dto/signup-request.dto';
+import { SignupResponse } from '../dto/signup-response.dto';
+import { LoginRequest } from '../dto/login-request.dto';
+import { LoginResponse } from '../dto/login-response.dto';
+import { PasswordResetRequest } from '../dto/password-reset-request.dto';
+import { RefreshRequest } from '../dto/refresh-request.dto';
+import { RefreshResponse } from '../dto/refresh-response.dto';
 
 type AuthTokenPayload = {
   sub: string;

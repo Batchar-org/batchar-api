@@ -7,7 +7,8 @@ import { User } from '../../user/entities/user.entity';
 import { Bid } from '../../bid/entities/bid.entity';
 import { ProductMediaService } from '../../product/service/product-media.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
-import { WishListRequest, WishSummary } from '../dto/wish.dto';
+import { WishListRequest } from '../dto/wish-list-request.dto';
+import { WishSummary } from '../dto/wish-summary.dto';
 
 @Injectable()
 export class WishService {

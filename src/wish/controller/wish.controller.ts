@@ -11,7 +11,7 @@ import {
 import { WishService } from '../service/wish.service';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { WishListRequest } from '../dto/wish.dto';
+import { WishListRequest } from '../dto/wish-list-request.dto';
 
 @Controller('api/wishes')
 @UseGuards(JwtAuthGuard)

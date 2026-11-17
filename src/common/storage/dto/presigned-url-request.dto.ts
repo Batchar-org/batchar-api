@@ -9,9 +9,3 @@ export class PresignedUrlRequest {
   @IsNotEmpty()
   contentType: string;
 }
-
-export class PresignedUrlResponse {
-  presignedUrl: string;
-
-  objectUrl: string;
-}

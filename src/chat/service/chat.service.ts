@@ -11,7 +11,8 @@ import { BlockService } from '../../block/service/block.service';
 import { BidGateway } from '../../websocket/gateway/bid.gateway';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { NotificationService } from '../../notification/service/notification.service';
-import { ChatListResponse, ChatMessageResponse } from '../dto/chat.dto';
+import { ChatListResponse } from '../dto/chat-list-response.dto';
+import { ChatMessageResponse } from '../dto/chat-message-response.dto';
 import { ProductStatus } from '../../product/enum/product-status.enum';
 
 @Injectable()

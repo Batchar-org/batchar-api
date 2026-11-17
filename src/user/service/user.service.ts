@@ -10,12 +10,10 @@ import { Wish } from '../../wish/entities/wish.entity';
 import { RefreshTokenService } from '../../auth/service/refresh-token.service';
 import { StorageService } from '../../common/storage/service/storage.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
-import {
-  UserMeResponse,
-  UpdateUserRequest,
-  PasswordVerifyRequest,
-  ChangePasswordRequest,
-} from '../dto/user.dto';
+import { UserMeResponse } from '../dto/user-me-response.dto';
+import { UpdateUserRequest } from '../dto/update-user-request.dto';
+import { PasswordVerifyRequest } from '../dto/password-verify-request.dto';
+import { ChangePasswordRequest } from '../dto/change-password-request.dto';
 
 @Injectable()
 export class UserService {

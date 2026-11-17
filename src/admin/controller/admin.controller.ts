@@ -12,7 +12,8 @@ import {
 import { AdminService } from '../service/admin.service';
 import { AdminGuard } from '../guard/admin.guard';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
-import { ReportListRequest, ResolveReportRequest } from '../dto/admin.dto';
+import { ReportListRequest } from '../dto/report-list-request.dto';
+import { ResolveReportRequest } from '../dto/resolve-report-request.dto';
 
 @Controller('api/admin')
 @UseGuards(JwtAuthGuard, AdminGuard)
