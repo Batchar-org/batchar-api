@@ -12,6 +12,9 @@ services:
       # 로컬 도커 구동 시 컨테이너 로그(docker logs)를 사람이 읽기 좋은 pretty 포맷으로.
       # (실제 배포 이미지는 이 값이 없으므로 JSON 그대로 — 수집/검색 용이)
       LOG_PRETTY: "true"
+      # 파일 로그(JSON). 호스트의 ./logs에 남아 컨테이너를 재생성해도 유지됨.
+      # 확인: tail -F logs/current.log | grep POST
+      LOG_DIR: /app/logs
       # 컨테이너 간 통신은 서비스 이름 + 내부 포트 사용 (.env의 localhost/15432 값을 덮어씀)
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -20,6 +23,8 @@ services:
     ports:
       # 호스트 노출 포트. 공용 서버에서 겹치면 .env에 APP_PORT 지정 (미지정 시 18080)
       - "${APP_PORT:-18080}:18080"
+    volumes:
+      - ./logs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy # postgres가 healthy 된 뒤에 app 기동

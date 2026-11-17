@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
+import { join } from 'node:path';
 
 import { Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
@@ -18,6 +19,11 @@ const isProd = process.env.NODE_ENV === 'production';
 //   LOG_PRETTY=true를 주면 컨테이너 로그(docker logs)도 pretty로 볼 수 있다.
 const prettyLogs = !isProd || process.env.LOG_PRETTY === 'true';
 
+const logLevel = process.env.LOG_LEVEL || (isProd ? 'info' : 'debug');
+
+// 파일 로그 디렉터리. 미지정이면 stdout만 (로컬 개발·테스트에서 파일이 쌓이지 않게).
+const logDir = process.env.LOG_DIR;
+
 /**
  * 전역 HTTP 요청 로깅 설정 (nestjs-pino 기반).
  * - 요청마다 고유 ID(request id)를 만들어 응답의 `X-Request-Id` 헤더로 내려준다.
@@ -33,7 +39,12 @@ const prettyLogs = !isProd || process.env.LOG_PRETTY === 'true';
   imports: [
     LoggerModule.forRoot({
       pinoHttp: {
-        level: process.env.LOG_LEVEL || (isProd ? 'info' : 'debug'),
+        level: logLevel,
+
+        // 시간을 epoch ms 대신 KST ISO 문자열로 (예: 2026-11-17T21:55:42.028+09:00).
+        // ponytail: +09:00 고정 — 한국은 DST가 없어 TZ 설정과 무관하게 정확. 다른 시간대 운영 시 교체.
+        timestamp: () =>
+          `,"time":"${new Date(Date.now() + 9 * 3600_000).toISOString().replace('Z', '+09:00')}"`,
 
         // 헬스체크(GET /)는 도커가 10초마다 호출 → 로그를 도배하므로 기록에서 제외.
         autoLogging: {
@@ -89,18 +100,43 @@ const prettyLogs = !isProd || process.env.LOG_PRETTY === 'true';
           }),
         },
 
-        // pretty: 컬러·한 줄 사람이 읽기 좋은 포맷 / 그 외: JSON(transport 미사용).
-        transport: prettyLogs
-          ? {
-              target: 'pino-pretty',
-              options: {
-                singleLine: true,
-                colorize: true,
-                translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
-                ignore: 'pid,hostname',
-              },
-            }
-          : undefined,
+        // stdout: pretty(컬러·한 줄) 또는 JSON.
+        // LOG_DIR 지정 시 파일에도 JSON으로 기록 → `tail -F $LOG_DIR/current.log | grep POST`.
+        // 파일은 일 단위 + 50MB 단위로 교체하고 최근 14개만 보관 (디스크 고갈 방지).
+        transport: {
+          targets: [
+            prettyLogs
+              ? {
+                  target: 'pino-pretty',
+                  level: logLevel,
+                  options: {
+                    singleLine: true,
+                    colorize: true,
+                    translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
+                    ignore: 'pid,hostname',
+                  },
+                }
+              : { target: 'pino/file', level: logLevel, options: {} },
+            ...(logDir
+              ? [
+                  {
+                    target: 'pino-roll',
+                    level: logLevel,
+                    options: {
+                      file: join(logDir, 'app'),
+                      extension: '.log',
+                      dateFormat: 'yyyy-MM-dd',
+                      frequency: 'daily',
+                      size: '50m',
+                      limit: { count: 14 },
+                      symlink: true,
+                      mkdir: true,
+                    },
+                  },
+                ]
+              : []),
+          ],
+        },
       },
     }),
   ],
