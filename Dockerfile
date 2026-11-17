@@ -11,17 +11,19 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# 로컬과 동일한 npm 버전으로 맞춤 (lockfile 호환성 — npm ci가 같은 방식으로 해석)
-RUN npm install -g npm@11.12.1
+# 패키지 매니저는 bun (런타임은 node 유지) — 로컬과 동일한 버전의 바이너리만 복사
+COPY --from=oven/bun:1.3.14 /usr/local/bin/bun /usr/local/bin/bun
 
-# package.json 먼저 복사 → 의존성 레이어 캐싱 (소스만 바뀌면 npm ci 재실행 안 함)
-COPY package.json package-lock.json ./
-RUN npm ci
+# package.json 먼저 복사 → 의존성 레이어 캐싱 (소스만 바뀌면 install 재실행 안 함)
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 # 소스 복사 후 빌드 → dist/ 생성, 이어서 개발 의존성 제거(prod만 남김)
 COPY . .
-RUN npm run build \
-    && npm prune --omit=dev
+# bun엔 prune이 없어 node_modules를 지우고 prod 의존성만 재설치
+RUN bun run build \
+    && rm -rf node_modules \
+    && bun install --frozen-lockfile --production
 
 # ============================================================
 # 2) runtime 스테이지 — 실행에 필요한 것만 복사
