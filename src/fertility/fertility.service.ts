@@ -44,7 +44,7 @@ export class FertilityService {
         : Number(chatRoom.seller.id);
 
       // 차단 관계(양방향)면 평가할 수 없다.
-      if (await this.blockService.isBlocked(giverId, receiverId)) {
+      if (await this.blockService.isBlocked(giverId, receiverId, manager)) {
         throw new BusinessException('BLOCKED');
       }
 

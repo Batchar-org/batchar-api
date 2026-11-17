@@ -79,7 +79,11 @@ export class BidService {
 
       // 차단 관계(양방향)인 판매자의 상품에는 입찰 불가
       if (
-        await this.blockService.isBlocked(bidderId, Number(product.seller.id))
+        await this.blockService.isBlocked(
+          bidderId,
+          Number(product.seller.id),
+          queryRunner.manager,
+        )
       ) {
         throw new BusinessException('BLOCKED');
       }

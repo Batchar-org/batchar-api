@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Block } from './entities/block.entity';
 import { User } from '../user/entities/user.entity';
 import { BusinessException } from '../common/exceptions/business.exception';
@@ -70,11 +70,20 @@ export class BlockService {
   }
 
   // is_blocked(a, b): 양방향 차단 관계 여부
-  async isBlocked(a: number | null, b: number | null): Promise<boolean> {
+  // 트랜잭션 안에서 호출할 때는 manager를 넘겨 같은 커넥션으로 조회한다.
+  // (풀에서 커넥션을 하나 더 꺼내면, 락 대기자들이 풀을 다 쥐고 있을 때 교착이 생김)
+  async isBlocked(
+    a: number | null,
+    b: number | null,
+    manager?: EntityManager,
+  ): Promise<boolean> {
     if (a == null || b == null) {
       return false;
     }
-    const count = await this.blockRepository.count({
+    const repository = manager
+      ? manager.getRepository(Block)
+      : this.blockRepository;
+    const count = await repository.count({
       where: [
         { blocker: { id: a }, blocked: { id: b } },
         { blocker: { id: b }, blocked: { id: a } },

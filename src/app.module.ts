@@ -33,6 +33,9 @@ import { LoggerConfigModule } from './common/logger/logger.module';
       database: process.env.POSTGRES_DB || 'test',
       autoLoadEntities: true,
       synchronize: true, // Spring Boot의 JPA ddl-auto: update 전략과 매핑
+      // 락을 5초 넘게 기다리면 실패시킨다. PostgreSQL 기본값은 무제한이라,
+      // 교착이 생기면 서버 전체가 멈춘다. (MySQL은 innodb_lock_wait_timeout 50초가 같은 역할)
+      extra: { options: '-c lock_timeout=5000' },
     }),
     ScheduleModule.forRoot(), // 스케줄러 기능 활성화
     RedisModule,
