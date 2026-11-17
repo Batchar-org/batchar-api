@@ -7,6 +7,10 @@ import { User } from '../user/entities/user.entity';
 import { NotificationService } from './service/notification.service';
 import { ExpoPushService } from './service/expo-push.service';
 import { NotificationController } from './controller/notification.controller';
+import { DeviceTokenRepository } from './repository/device-token.repository';
+import { NotificationRepository } from './repository/notification.repository';
+import { NotificationSettingRepository } from './repository/notification-setting.repository';
+import { UserRepository } from '../user/repository/user.repository';
 
 /**
  * 알림은 bid/auction/chat/admin 등 다수 도메인에서 호출하는 횡단 관심사이며,
@@ -23,7 +27,14 @@ import { NotificationController } from './controller/notification.controller';
     ]),
   ],
   controllers: [NotificationController],
-  providers: [NotificationService, ExpoPushService],
+  providers: [
+    NotificationService,
+    ExpoPushService,
+    DeviceTokenRepository,
+    NotificationRepository,
+    NotificationSettingRepository,
+    UserRepository,
+  ],
   exports: [NotificationService],
 })
 export class NotificationModule {}

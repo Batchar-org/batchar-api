@@ -1,6 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
 import snakecaseKeys from 'snakecase-keys';
 import { ExpoPushMessage } from 'expo-server-sdk';
 import { DeviceToken } from '../entities/device-token.entity';
@@ -10,7 +8,10 @@ import {
   NotificationType,
   NotificationData,
 } from '../enum/notification-type.enum';
-import { User } from '../../user/entities/user.entity';
+import { DeviceTokenRepository } from '../repository/device-token.repository';
+import { NotificationRepository } from '../repository/notification.repository';
+import { NotificationSettingRepository } from '../repository/notification-setting.repository';
+import { UserRepository } from '../../user/repository/user.repository';
 import { ReportStatus } from '../../report/enum/report-status.enum';
 import { ExpoPushService } from './expo-push.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
@@ -22,14 +23,10 @@ export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
   constructor(
-    @InjectRepository(DeviceToken)
-    private readonly deviceTokenRepository: Repository<DeviceToken>,
-    @InjectRepository(Notification)
-    private readonly notificationRepository: Repository<Notification>,
-    @InjectRepository(NotificationSetting)
-    private readonly settingRepository: Repository<NotificationSetting>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly deviceTokenRepository: DeviceTokenRepository,
+    private readonly notificationRepository: NotificationRepository,
+    private readonly settingRepository: NotificationSettingRepository,
+    private readonly userRepository: UserRepository,
     private readonly expoPushService: ExpoPushService,
   ) {}
 
@@ -40,13 +37,13 @@ export class NotificationService {
       throw new BusinessException('INVALID_PUSH_TOKEN');
     }
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
 
     // 같은 기기 토큰이 다른 계정에 묶여 있을 수 있으므로 먼저 제거하여 1토큰=1사용자를 보장
-    await this.deviceTokenRepository.delete({ token });
+    await this.deviceTokenRepository.deleteByToken(token);
     await this.deviceTokenRepository.save(DeviceToken.create(user, token));
   }
 
@@ -54,7 +51,7 @@ export class NotificationService {
     if (!token) {
       return; // 토큰 미지정 시 해당 사용자의 전체 토큰이 삭제되는 것을 방지
     }
-    await this.deviceTokenRepository.delete({ user: { id: userId }, token });
+    await this.deviceTokenRepository.deleteByUserAndToken(userId, token);
   }
 
   // ==================== 알림함 ====================
@@ -62,12 +59,11 @@ export class NotificationService {
   async getNotifications(userId: number, request: NotificationListRequest) {
     const { page, size } = request;
 
-    const notifications = await this.notificationRepository.find({
-      where: { user: { id: userId } },
-      order: { createdAt: 'DESC' },
-      skip: page * size,
-      take: size + 1,
-    });
+    const notifications = await this.notificationRepository.findPageByUser(
+      userId,
+      page * size,
+      size + 1,
+    );
 
     const hasNext = notifications.length > size;
     const sliced = hasNext ? notifications.slice(0, size) : notifications;
@@ -81,65 +77,56 @@ export class NotificationService {
   }
 
   async getUnreadCount(userId: number) {
-    const count = await this.notificationRepository.count({
-      where: { user: { id: userId }, isRead: false },
-    });
+    const count = await this.notificationRepository.countUnreadByUser(userId);
     return { count };
   }
 
   async markAsRead(userId: number, notificationId: number): Promise<void> {
-    const result = await this.notificationRepository.update(
-      { id: notificationId, user: { id: userId } },
-      { isRead: true },
+    const affected = await this.notificationRepository.markAsRead(
+      notificationId,
+      userId,
     );
 
-    if (!result.affected) {
+    if (!affected) {
       throw new BusinessException('NOTIFICATION_NOT_FOUND');
     }
   }
 
   async markAllAsRead(userId: number): Promise<void> {
-    await this.notificationRepository.update(
-      { user: { id: userId }, isRead: false },
-      { isRead: true },
-    );
+    await this.notificationRepository.markAllAsRead(userId);
   }
 
   async deleteNotification(
     userId: number,
     notificationId: number,
   ): Promise<void> {
-    const result = await this.notificationRepository.delete({
-      id: notificationId,
-      user: { id: userId },
-    });
-    if (!result.affected) {
+    const affected = await this.notificationRepository.deleteByIdAndUser(
+      notificationId,
+      userId,
+    );
+    if (!affected) {
       throw new BusinessException('NOTIFICATION_NOT_FOUND');
     }
   }
 
   async deleteAllNotifications(userId: number): Promise<void> {
-    await this.notificationRepository.delete({ user: { id: userId } });
+    await this.notificationRepository.deleteAllByUser(userId);
   }
 
   // ==================== 설정 ====================
 
   async getSetting(userId: number) {
-    const setting = await this.settingRepository.findOne({
-      where: { user: { id: userId } },
-    });
+    const setting = await this.settingRepository.findByUser(userId);
     return { pushEnabled: setting ? setting.pushEnabled : true };
   }
 
   async updateSetting(userId: number, pushEnabled: boolean) {
-    let setting = await this.settingRepository.findOne({
-      where: { user: { id: userId } },
-    });
+    let setting = await this.settingRepository.findByUser(userId);
 
     if (setting) {
       setting.pushEnabled = pushEnabled;
     } else {
-      const user = await this.userRepository.findOne({ where: { id: userId } });
+      const user = await this.userRepository.findById(userId);
       if (!user) {
         throw new BusinessException('USER_NOT_FOUND');
       }
@@ -275,9 +262,7 @@ export class NotificationService {
 
   async notifyReportCreated(params: { reportId: number }): Promise<void> {
     try {
-      const admins = await this.userRepository.find({
-        where: { isAdmin: true },
-      });
+      const admins = await this.userRepository.findAdmins();
 
       await Promise.all(
         admins.map((admin) =>
@@ -313,7 +298,7 @@ export class NotificationService {
     data: NotificationData,
   ): Promise<void> {
     try {
-      const user = await this.userRepository.findOne({ where: { id: userId } });
+      const user = await this.userRepository.findById(userId);
       if (!user || !user.isActive()) {
         return; // 존재하지 않거나 정지/탈퇴한 사용자에게는 알림하지 않음
       }
@@ -324,24 +309,19 @@ export class NotificationService {
       );
 
       // 푸시 마스터 스위치 (설정 행이 없으면 기본 ON)
-      const setting = await this.settingRepository.findOne({
-        where: { user: { id: userId } },
-      });
+      const setting = await this.settingRepository.findByUser(userId);
       if (setting && !setting.pushEnabled) {
         return;
       }
 
-      const deviceTokens = await this.deviceTokenRepository.find({
-        where: { user: { id: userId } },
-      });
+      const deviceTokens =
+        await this.deviceTokenRepository.findAllByUser(userId);
       if (deviceTokens.length === 0) {
         return;
       }
 
       // 앱 아이콘 배지 = 사용자의 안 읽은 알림 수(방금 적재분 포함)
-      const badge = await this.notificationRepository.count({
-        where: { user: { id: userId }, isRead: false },
-      });
+      const badge = await this.notificationRepository.countUnreadByUser(userId);
 
       // data 키는 인앱 알림함 응답과 동일하게 보이도록 snake_case로 변환하여 실어 보낸다
       const pushData = snakecaseKeys(
@@ -359,7 +339,7 @@ export class NotificationService {
 
       const invalidTokens = await this.expoPushService.send(messages);
       if (invalidTokens.length > 0) {
-        await this.deviceTokenRepository.delete({ token: In(invalidTokens) });
+        await this.deviceTokenRepository.deleteByTokens(invalidTokens);
       }
     } catch (e) {
       this.logger.error(

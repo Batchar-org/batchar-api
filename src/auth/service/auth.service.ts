@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from '../../user/entities/user.entity';
+import { UserRepository } from '../../user/repository/user.repository';
 import { RefreshTokenService } from './refresh-token.service';
 import { EmailService } from '../../common/email/service/email.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
@@ -27,8 +26,7 @@ export class AuthService {
   private static readonly TEMP_PASSWORD_LENGTH = 12;
 
   constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly refreshTokenService: RefreshTokenService,
     private readonly emailService: EmailService,
@@ -44,13 +42,13 @@ export class AuthService {
     }
 
     // 2. 이메일 중복 체크
-    const existsEmail = await this.userRepository.findOne({ where: { email } });
+    const existsEmail = await this.userRepository.findByEmail(email);
     if (existsEmail) {
       throw new BusinessException('DUPLICATE_EMAIL');
     }
 
     // 3. 닉네임 중복 체크
-    const existsName = await this.userRepository.findOne({ where: { name } });
+    const existsName = await this.userRepository.findByName(name);
     if (existsName) {
       throw new BusinessException('DUPLICATE_NAME');
     }
@@ -90,7 +88,7 @@ export class AuthService {
   async login(request: LoginRequest): Promise<LoginResponse> {
     const { email, password } = request;
 
-    const user = await this.userRepository.findOne({ where: { email } });
+    const user = await this.userRepository.findByEmail(email);
     if (!user) {
       throw new BusinessException('INVALID_CREDENTIALS');
     }
@@ -125,9 +123,7 @@ export class AuthService {
   }
 
   async resetPassword(request: PasswordResetRequest): Promise<void> {
-    const user = await this.userRepository.findOne({
-      where: { email: request.email },
-    });
+    const user = await this.userRepository.findByEmail(request.email);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -149,7 +145,7 @@ export class AuthService {
     }
 
     const userId = await this.refreshTokenService.getUserId(token);
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }

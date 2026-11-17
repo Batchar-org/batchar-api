@@ -9,6 +9,7 @@ import { JwtStrategy } from './strategy/jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { EmailModule } from '../common/email/email.module';
 import { RedisModule } from '../common/redis/redis.module';
+import { UserRepository } from '../user/repository/user.repository';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { RedisModule } from '../common/redis/redis.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, RefreshTokenService, JwtStrategy],
+  providers: [AuthService, RefreshTokenService, JwtStrategy, UserRepository],
   exports: [AuthService, RefreshTokenService, JwtStrategy, JwtModule],
 })
 export class AuthModule {}

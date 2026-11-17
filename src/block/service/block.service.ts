@@ -1,18 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import { Block } from '../entities/block.entity';
-import { User } from '../../user/entities/user.entity';
+import { BlockRepository } from '../repository/block.repository';
+import { UserRepository } from '../../user/repository/user.repository';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { BlockSummary } from '../dto/block-summary.dto';
 
 @Injectable()
 export class BlockService {
   constructor(
-    @InjectRepository(Block)
-    private readonly blockRepository: Repository<Block>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly blockRepository: BlockRepository,
+    private readonly userRepository: UserRepository,
   ) {}
 
   async blockUser(blockerId: number, blockedId: number): Promise<number> {
@@ -20,23 +18,17 @@ export class BlockService {
       throw new BusinessException('SELF_BLOCK_NOT_ALLOWED');
     }
 
-    const blocker = await this.userRepository.findOne({
-      where: { id: blockerId },
-    });
+    const blocker = await this.userRepository.findById(blockerId);
     if (!blocker) {
       throw new BusinessException('USER_NOT_FOUND');
     }
 
-    const blocked = await this.userRepository.findOne({
-      where: { id: blockedId },
-    });
+    const blocked = await this.userRepository.findById(blockedId);
     if (!blocked) {
       throw new BusinessException('USER_NOT_FOUND');
     }
 
-    const exists = await this.blockRepository.findOne({
-      where: { blocker: { id: blockerId }, blocked: { id: blockedId } },
-    });
+    const exists = await this.blockRepository.findByPair(blockerId, blockedId);
     if (exists) {
       throw new BusinessException('ALREADY_BLOCKED');
     }
@@ -47,18 +39,12 @@ export class BlockService {
   }
 
   async unblockUser(blockerId: number, blockedId: number): Promise<void> {
-    await this.blockRepository.delete({
-      blocker: { id: blockerId },
-      blocked: { id: blockedId },
-    });
+    await this.blockRepository.deleteByPair(blockerId, blockedId);
   }
 
   async getBlockList(userId: number): Promise<BlockSummary[]> {
-    const blocks = await this.blockRepository.find({
-      where: { blocker: { id: userId } },
-      relations: { blocked: true },
-      order: { createdAt: 'DESC' },
-    });
+    const blocks =
+      await this.blockRepository.findAllByBlockerWithBlocked(userId);
 
     return blocks.map((b) => ({
       blockId: Number(b.id),
@@ -80,24 +66,13 @@ export class BlockService {
     if (a == null || b == null) {
       return false;
     }
-    const repository = manager
-      ? manager.getRepository(Block)
-      : this.blockRepository;
-    const count = await repository.count({
-      where: [
-        { blocker: { id: a }, blocked: { id: b } },
-        { blocker: { id: b }, blocked: { id: a } },
-      ],
-    });
+    const count = await this.blockRepository.countBetween(a, b, manager);
     return count > 0;
   }
 
   // userId와 차단 관계(양방향)인 모든 상대 사용자 ID 목록 — 목록 필터링용
   async getBlockedUserIds(userId: number): Promise<number[]> {
-    const blocks = await this.blockRepository.find({
-      where: [{ blocker: { id: userId } }, { blocked: { id: userId } }],
-      relations: { blocker: true, blocked: true },
-    });
+    const blocks = await this.blockRepository.findAllInvolving(userId);
 
     const ids = new Set<number>();
     for (const b of blocks) {
@@ -115,12 +90,11 @@ export class BlockService {
     userId: number,
     partnerId: number,
   ): Promise<{ iBlocked: boolean; blockedByPartner: boolean }> {
-    const iBlocked = await this.blockRepository.exists({
-      where: { blocker: { id: userId }, blocked: { id: partnerId } },
-    });
-    const blockedByPartner = await this.blockRepository.exists({
-      where: { blocker: { id: partnerId }, blocked: { id: userId } },
-    });
+    const iBlocked = await this.blockRepository.existsByPair(userId, partnerId);
+    const blockedByPartner = await this.blockRepository.existsByPair(
+      partnerId,
+      userId,
+    );
     return { iBlocked, blockedByPartner };
   }
 }

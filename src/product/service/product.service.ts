@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Product } from '../entities/product.entity';
-import { User } from '../../user/entities/user.entity';
-import { Wish } from '../../wish/entities/wish.entity';
-import { Bid } from '../../bid/entities/bid.entity';
+import { ProductRepository } from '../repository/product.repository';
+import { UserRepository } from '../../user/repository/user.repository';
+import { WishRepository } from '../../wish/repository/wish.repository';
+import { BidRepository } from '../../bid/repository/bid.repository';
 import { ProductMediaService } from './product-media.service';
 import { RedisService } from '../../common/redis/service/redis.service';
 import { BlockService } from '../../block/service/block.service';
@@ -16,7 +16,7 @@ import { ProductSummary } from '../dto/product-summary.dto';
 import { ProductDetailResponse } from '../dto/product-detail-response.dto';
 import { ProductUpdateRequest } from '../dto/product-update-request.dto';
 import { ProductStatus } from '../enum/product-status.enum';
-import { ProductViewType, requiresAuth } from '../enum/product-view-type.enum';
+import { requiresAuth } from '../enum/product-view-type.enum';
 
 @Injectable()
 export class ProductService {
@@ -27,14 +27,10 @@ export class ProductService {
   private static readonly RETENTION_PURGE_BATCH_SIZE = 100;
 
   constructor(
-    @InjectRepository(Product)
-    private readonly productRepository: Repository<Product>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    @InjectRepository(Wish)
-    private readonly wishRepository: Repository<Wish>,
-    @InjectRepository(Bid)
-    private readonly bidRepository: Repository<Bid>,
+    private readonly productRepository: ProductRepository,
+    private readonly userRepository: UserRepository,
+    private readonly wishRepository: WishRepository,
+    private readonly bidRepository: BidRepository,
     private readonly productMediaService: ProductMediaService,
     private readonly redisService: RedisService,
     private readonly blockService: BlockService,
@@ -46,9 +42,7 @@ export class ProductService {
     request: ProductCreateRequest,
     files: Express.Multer.File[],
   ): Promise<ProductResponse> {
-    const seller = await this.userRepository.findOne({
-      where: { id: sellerId },
-    });
+    const seller = await this.userRepository.findById(sellerId);
     if (!seller) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -67,7 +61,7 @@ export class ProductService {
         request.endTime,
       );
 
-      await queryRunner.manager.save(product);
+      await this.productRepository.save(product, queryRunner.manager);
       await this.productMediaService.saveMedia(
         product,
         files,
@@ -99,91 +93,23 @@ export class ProductService {
     const skip = page * size;
     const take = size + 1; // hasNext 판별을 위해 1개 더 조회
 
-    let products: Product[] = [];
-
     // 키워드 와일드카드 검색 팩터 빌드 (스프링과 동일하게 공백을 %로 변환)
     const keywordPattern = this.buildKeywordPattern(keyword);
-    const now = new Date();
-    const activeProductCondition =
-      'product.status = :onSaleStatus AND product.end_time > :now';
-
-    // View 타입에 맞춰 쿼리 빌더를 이용하여 조회 분기 처리
-    const qb = this.productRepository.createQueryBuilder('product');
-    qb.leftJoinAndSelect('product.seller', 'seller');
-    qb.leftJoinAndSelect('product.winner', 'winner');
-    qb.setParameters({
-      onSaleStatus: ProductStatus.ON_SALE,
-      now,
-    });
-
-    if (view === ProductViewType.MY_PRODUCTS) {
-      qb.where('product.seller_id = :userId', { userId });
-    } else if (view === ProductViewType.MY_BIDS) {
-      qb.innerJoin('bids', 'bid', 'bid.product_id = product.id')
-        .where('bid.bidder_id = :userId', { userId })
-        .andWhere(
-          `(${activeProductCondition} OR product.winner_id = :userId)`,
-          { userId },
-        )
-        .distinct(true);
-    } else if (view === ProductViewType.MY_ACTIVE_BIDS) {
-      qb.innerJoin('bids', 'bid', 'bid.product_id = product.id')
-        .where('bid.bidder_id = :userId', { userId })
-        .andWhere(activeProductCondition)
-        .distinct(true);
-    } else if (view === ProductViewType.ALL) {
-      qb.where('1 = 1');
-    } else if (view === ProductViewType.BID_CLOSED) {
-      qb.where(`NOT (${activeProductCondition})`);
-    } else {
-      qb.where(activeProductCondition);
-    }
-
-    if (category) {
-      qb.andWhere('product.category = :category', { category });
-    }
-
-    if (keywordPattern) {
-      qb.andWhere('LOWER(product.title) LIKE LOWER(:keyword)', {
-        keyword: keywordPattern,
-      });
-    }
-
-    // 삭제 처리된 상품은 모든 뷰에서 제외
-    qb.andWhere('product.status != :deletedStatus', {
-      deletedStatus: ProductStatus.DELETED,
-    });
 
     // 차단 관계(양방향)인 판매자의 상품 제외
-    if (userId) {
-      const blockedUserIds = await this.blockService.getBlockedUserIds(userId);
-      if (blockedUserIds.length > 0) {
-        qb.andWhere('product.seller_id NOT IN (:...blockedUserIds)', {
-          blockedUserIds,
-        });
-      }
-    }
+    const blockedUserIds = userId
+      ? await this.blockService.getBlockedUserIds(userId)
+      : [];
 
-    // 정렬 분기
-    if (view === ProductViewType.POPULAR) {
-      qb.addSelect(
-        (subQuery) =>
-          subQuery
-            .select('COUNT(wish.id)')
-            .from(Wish, 'wish')
-            .where('wish.product_id = product.id'),
-        'wishCountForOrder',
-      )
-        .orderBy('wishCountForOrder', 'DESC')
-        .addOrderBy('product.created_at', 'DESC');
-    } else if (view === ProductViewType.ENDING_SOON) {
-      qb.orderBy('product.end_time', 'ASC');
-    } else {
-      // LATEST / ALL / BIDDING / BID_CLOSED / MY_PRODUCTS / MY_ACTIVE_BIDS / MY_BIDS 등은 생성시각 역순
-      qb.orderBy('product.created_at', 'DESC');
-    }
-
-    products = await qb.skip(skip).take(take).getMany();
+    const products = await this.productRepository.findList({
+      view,
+      userId,
+      category,
+      keywordPattern,
+      blockedUserIds,
+      skip,
+      take,
+    });
 
     const hasNext = products.length > size;
     const slicedContent = hasNext ? products.slice(0, size) : products;
@@ -193,17 +119,12 @@ export class ProductService {
       const mainImageUrl = await this.productMediaService.getFirstMediaUrl(
         product.id,
       );
-      const wishCount = await this.wishRepository.count({
-        where: { product: { id: product.id } },
-      });
+      const wishCount = await this.wishRepository.countByProduct(product.id);
 
       // 입찰자 중복 제외 카운트
-      const bidCountResult = await this.bidRepository
-        .createQueryBuilder('bid')
-        .select('COUNT(DISTINCT bid.bidder_id)', 'count')
-        .where('bid.product_id = :productId', { productId: product.id })
-        .getRawOne<{ count: string }>();
-      const bidCount = parseInt(bidCountResult?.count || '0', 10);
+      const bidCount = await this.bidRepository.countDistinctBidders(
+        product.id,
+      );
       const myBidPrice = userId
         ? await this.findMyHighestBidPrice(userId, product.id)
         : null;
@@ -237,10 +158,8 @@ export class ProductService {
     productId: number,
     userId: number | null,
   ): Promise<ProductDetailResponse> {
-    const product = await this.productRepository.findOne({
-      where: { id: productId },
-      relations: { seller: true, winner: true },
-    });
+    const product =
+      await this.productRepository.findByIdWithSellerAndWinner(productId);
 
     if (!product) {
       throw new BusinessException('PRODUCT_NOT_FOUND');
@@ -253,10 +172,11 @@ export class ProductService {
     // 내가 현재 이 상품의 최고가 입찰자인지 판별
     let isTopBidder = false;
     if (userId) {
-      const myHighestBid = await this.bidRepository.findOne({
-        where: { bidder: { id: userId }, product: { id: productId } },
-        order: { price: 'DESC' },
-      });
+      const myHighestBid =
+        await this.bidRepository.findHighestByBidderAndProduct(
+          userId,
+          productId,
+        );
       if (myHighestBid) {
         isTopBidder =
           Number(myHighestBid.price) === Number(product.currentPrice);
@@ -265,21 +185,12 @@ export class ProductService {
 
     const mediaUrls =
       await this.productMediaService.getMediaInfoByProductId(productId);
-    const wishCount = await this.wishRepository.count({
-      where: { product: { id: productId } },
-    });
+    const wishCount = await this.wishRepository.countByProduct(productId);
 
-    const bidCountResult = await this.bidRepository
-      .createQueryBuilder('bid')
-      .select('COUNT(DISTINCT bid.bidder_id)', 'count')
-      .where('bid.product_id = :productId', { productId })
-      .getRawOne<{ count: string }>();
-    const bidCount = parseInt(bidCountResult?.count || '0', 10);
+    const bidCount = await this.bidRepository.countDistinctBidders(productId);
 
     const isWished = userId
-      ? await this.wishRepository.exists({
-          where: { user: { id: userId }, product: { id: productId } },
-        })
+      ? await this.wishRepository.existsByUserAndProduct(userId, productId)
       : false;
 
     return {
@@ -314,10 +225,7 @@ export class ProductService {
     request: ProductUpdateRequest,
     files?: Express.Multer.File[],
   ): Promise<ProductDetailResponse> {
-    const product = await this.productRepository.findOne({
-      where: { id: productId },
-      relations: { seller: true },
-    });
+    const product = await this.productRepository.findByIdWithSeller(productId);
 
     if (!product) {
       throw new BusinessException('PRODUCT_NOT_FOUND');
@@ -342,7 +250,7 @@ export class ProductService {
         request.category,
         request.endTime,
       );
-      await queryRunner.manager.save(product);
+      await this.productRepository.save(product, queryRunner.manager);
 
       // 삭제 미디어 처리
       if (request.deleteMediaIds && request.deleteMediaIds.length > 0) {
@@ -386,10 +294,7 @@ export class ProductService {
     productId: number,
     userId: number,
   ): Promise<ProductResponse> {
-    const product = await this.productRepository.findOne({
-      where: { id: productId },
-      relations: { seller: true },
-    });
+    const product = await this.productRepository.findByIdWithSeller(productId);
 
     if (!product) {
       throw new BusinessException('PRODUCT_NOT_FOUND');
@@ -403,9 +308,7 @@ export class ProductService {
   }
 
   async deleteProductByAdmin(productId: number): Promise<ProductResponse> {
-    const product = await this.productRepository.findOne({
-      where: { id: productId },
-    });
+    const product = await this.productRepository.findById(productId);
 
     if (!product) {
       throw new BusinessException('PRODUCT_NOT_FOUND');
@@ -424,33 +327,11 @@ export class ProductService {
       ProductService.COMPLETED_PRODUCT_RETENTION_YEARS,
     );
 
-    const expiredProducts = await this.productRepository
-      .createQueryBuilder('product')
-      .where('product.status = :deletedStatus', {
-        deletedStatus: ProductStatus.DELETED,
-      })
-      .andWhere('product.deleted_at IS NOT NULL')
-      .andWhere(
-        [
-          '(',
-          '(',
-          'product.winner_id IS NOT NULL',
-          'AND product.deleted_at <= :completedRetentionDate',
-          ')',
-          'OR',
-          '(',
-          'product.winner_id IS NULL',
-          'AND product.deleted_at <= :defaultRetentionDate',
-          ')',
-          ')',
-        ].join(' '),
-        {
-          completedRetentionDate,
-          defaultRetentionDate,
-        },
-      )
-      .take(ProductService.RETENTION_PURGE_BATCH_SIZE)
-      .getMany();
+    const expiredProducts = await this.productRepository.findPurgeableDeleted(
+      completedRetentionDate,
+      defaultRetentionDate,
+      ProductService.RETENTION_PURGE_BATCH_SIZE,
+    );
 
     let purgedCount = 0;
     for (const product of expiredProducts) {
@@ -488,19 +369,15 @@ export class ProductService {
         productId,
         queryRunner.manager,
       );
-      await queryRunner.manager
-        .createQueryBuilder()
-        .delete()
-        .from(Bid)
-        .where('product_id = :productId', { productId })
-        .execute();
-      await queryRunner.manager
-        .createQueryBuilder()
-        .delete()
-        .from(Wish)
-        .where('product_id = :productId', { productId })
-        .execute();
-      await queryRunner.manager.delete(Product, productId);
+      await this.bidRepository.deleteAllByProduct(
+        productId,
+        queryRunner.manager,
+      );
+      await this.wishRepository.deleteAllByProduct(
+        productId,
+        queryRunner.manager,
+      );
+      await this.productRepository.deleteById(productId, queryRunner.manager);
 
       await queryRunner.commitTransaction();
       await this.deleteAuctionTtl(productId);
@@ -521,10 +398,10 @@ export class ProductService {
     userId: number,
     productId: number,
   ): Promise<number | null> {
-    const bid = await this.bidRepository.findOne({
-      where: { bidder: { id: userId }, product: { id: productId } },
-      order: { price: 'DESC' },
-    });
+    const bid = await this.bidRepository.findHighestByBidderAndProduct(
+      userId,
+      productId,
+    );
     return bid ? Number(bid.price) : null;
   }
 

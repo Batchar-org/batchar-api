@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from '../../user/entities/user.entity';
-import { ChatMessage } from '../../chat/entities/chat-message.entity';
 import { Report } from '../../report/entities/report.entity';
+import { UserRepository } from '../../user/repository/user.repository';
+import { ChatMessageRepository } from '../../chat/repository/chat-message.repository';
+import { ReportRepository } from '../../report/repository/report.repository';
 import { ReportStatus } from '../../report/enum/report-status.enum';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { NotificationService } from '../../notification/service/notification.service';
@@ -19,18 +18,15 @@ export class AdminService {
   private static readonly SUSPENSION_DAYS = 7;
 
   constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    @InjectRepository(ChatMessage)
-    private readonly chatMessageRepository: Repository<ChatMessage>,
-    @InjectRepository(Report)
-    private readonly reportRepository: Repository<Report>,
+    private readonly userRepository: UserRepository,
+    private readonly chatMessageRepository: ChatMessageRepository,
+    private readonly reportRepository: ReportRepository,
     private readonly notificationService: NotificationService,
     private readonly productService: ProductService,
   ) {}
 
   async suspendUser(userId: number): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -39,7 +35,7 @@ export class AdminService {
   }
 
   async unsuspendUser(userId: number): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -55,10 +51,7 @@ export class AdminService {
     reportId: number,
     request: ResolveReportRequest,
   ): Promise<void> {
-    const report = await this.reportRepository.findOne({
-      where: { id: reportId },
-      relations: { reporter: true },
-    });
+    const report = await this.reportRepository.findByIdWithReporter(reportId);
     if (!report) {
       throw new BusinessException('REPORT_NOT_FOUND');
     }
@@ -83,19 +76,7 @@ export class AdminService {
     const skip = page * size;
     const take = size + 1;
 
-    const reports = await this.reportRepository.find({
-      where: status ? { status } : {},
-      relations: {
-        reporter: true,
-        targetUser: true,
-        targetProduct: true,
-        targetMessage: { sender: true },
-        targetChatRoom: true,
-      },
-      order: { createdAt: 'DESC' },
-      skip,
-      take,
-    });
+    const reports = await this.reportRepository.findPage(status, skip, take);
 
     const hasNext = reports.length > size;
     const sliced = hasNext ? reports.slice(0, size) : reports;
@@ -106,16 +87,7 @@ export class AdminService {
   }
 
   async getReportDetail(reportId: number): Promise<ReportDetail> {
-    const report = await this.reportRepository.findOne({
-      where: { id: reportId },
-      relations: {
-        reporter: true,
-        targetUser: true,
-        targetProduct: true,
-        targetMessage: { sender: true, chat: true },
-        targetChatRoom: true,
-      },
-    });
+    const report = await this.reportRepository.findDetailById(reportId);
 
     if (!report) {
       throw new BusinessException('REPORT_NOT_FOUND');
@@ -140,11 +112,8 @@ export class AdminService {
     chatId: number,
     reportedMessageId: number | null,
   ): Promise<ReportChatMessageSummary[]> {
-    const messages = await this.chatMessageRepository.find({
-      where: { chat: { id: chatId } },
-      relations: { sender: true },
-      order: { createdAt: 'ASC' },
-    });
+    const messages =
+      await this.chatMessageRepository.findAllByChatWithSender(chatId);
 
     return messages.map((message) => ({
       messageId: Number(message.id),

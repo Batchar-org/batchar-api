@@ -1,10 +1,13 @@
 import { Injectable, Inject, forwardRef, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, EntityManager } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import { ChatRoom } from '../entities/chat-room.entity';
 import { ChatMessage } from '../entities/chat-message.entity';
 import { Product } from '../../product/entities/product.entity';
 import { User } from '../../user/entities/user.entity';
+import { ChatRoomRepository } from '../repository/chat-room.repository';
+import { ChatMessageRepository } from '../repository/chat-message.repository';
+import { UserRepository } from '../../user/repository/user.repository';
+import { ProductRepository } from '../../product/repository/product.repository';
 import { ProductMediaService } from '../../product/service/product-media.service';
 import { StorageService } from '../../common/storage/service/storage.service';
 import { BlockService } from '../../block/service/block.service';
@@ -20,12 +23,10 @@ export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
   constructor(
-    @InjectRepository(ChatRoom)
-    private readonly chatRoomRepository: Repository<ChatRoom>,
-    @InjectRepository(ChatMessage)
-    private readonly chatMessageRepository: Repository<ChatMessage>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly chatRoomRepository: ChatRoomRepository,
+    private readonly chatMessageRepository: ChatMessageRepository,
+    private readonly userRepository: UserRepository,
+    private readonly productRepository: ProductRepository,
     private readonly productMediaService: ProductMediaService,
     private readonly storageService: StorageService,
     private readonly blockService: BlockService,
@@ -90,17 +91,11 @@ export class ChatService {
     manager: EntityManager,
   ): Promise<void> {
     const chatRoom = ChatRoom.createChatRoom(product, seller, bidder);
-    await manager.save(chatRoom);
+    await this.chatRoomRepository.save(chatRoom, manager);
   }
 
   async getChatLists(userId: number): Promise<ChatListResponse[]> {
-    const chatRooms = await this.chatRoomRepository.find({
-      where: [
-        { seller: { id: userId }, sellerDeleted: false },
-        { buyer: { id: userId }, buyerDeleted: false },
-      ],
-      relations: { seller: true, buyer: true, product: true },
-    });
+    const chatRooms = await this.chatRoomRepository.findActiveByUser(userId);
 
     const responses: ChatListResponse[] = [];
     for (const chatRoom of chatRooms) {
@@ -119,23 +114,19 @@ export class ChatService {
         ? chatRoom.buyerDeleted
         : chatRoom.sellerDeleted;
 
-      const lastMsgEntity = await this.chatMessageRepository.findOne({
-        where: { chat: { id: chatRoom.id } },
-        order: { createdAt: 'DESC' },
-      });
+      const lastMsgEntity = await this.chatMessageRepository.findLatestByChat(
+        chatRoom.id,
+      );
       const lastMessage = lastMsgEntity ? lastMsgEntity.message : '';
 
       const productImageUrl = await this.productMediaService.getFirstMediaUrl(
         chatRoom.product.id,
       );
 
-      const unreadCount = await this.chatMessageRepository.count({
-        where: {
-          chat: { id: chatRoom.id },
-          sender: { id: Not(userId) },
-          isRead: false,
-        },
-      });
+      const unreadCount = await this.chatMessageRepository.countUnread(
+        chatRoom.id,
+        userId,
+      );
 
       const { iBlocked, blockedByPartner } =
         await this.blockService.getBlockDirection(
@@ -176,16 +167,14 @@ export class ChatService {
     userId: number,
     content: string,
   ): Promise<ChatMessageResponse> {
-    const chatRoom = await this.chatRoomRepository.findOne({
-      where: { id: chatId },
-      relations: { seller: true, buyer: true, product: true },
-    });
+    const chatRoom =
+      await this.chatRoomRepository.findByIdWithParticipantsAndProduct(chatId);
 
     if (!chatRoom) {
       throw new BusinessException('CHATROOM_NOT_FOUND');
     }
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -219,10 +208,8 @@ export class ChatService {
     chatId: number,
     userId: number,
   ): Promise<ChatMessageResponse[]> {
-    const chatRoom = await this.chatRoomRepository.findOne({
-      where: { id: chatId },
-      relations: { seller: true, buyer: true },
-    });
+    const chatRoom =
+      await this.chatRoomRepository.findByIdWithParticipants(chatId);
 
     if (!chatRoom) {
       throw new BusinessException('CHATROOM_NOT_FOUND');
@@ -232,11 +219,8 @@ export class ChatService {
       throw new BusinessException('CHAT_ACCESS_DENIED');
     }
 
-    const messages = await this.chatMessageRepository.find({
-      where: { chat: { id: chatId } },
-      order: { createdAt: 'ASC' },
-      relations: { sender: true },
-    });
+    const messages =
+      await this.chatMessageRepository.findAllByChatWithSender(chatId);
 
     let updated = false;
     for (const message of messages) {
@@ -247,7 +231,7 @@ export class ChatService {
     }
 
     if (updated) {
-      await this.chatMessageRepository.save(messages);
+      await this.chatMessageRepository.saveAll(messages);
     }
 
     return messages.map((m) => ({
@@ -261,10 +245,8 @@ export class ChatService {
   }
 
   async deleteChatRoom(chatId: number, userId: number): Promise<void> {
-    const chatRoom = await this.chatRoomRepository.findOne({
-      where: { id: chatId },
-      relations: { seller: true, buyer: true },
-    });
+    const chatRoom =
+      await this.chatRoomRepository.findByIdWithParticipants(chatId);
 
     if (!chatRoom) {
       throw new BusinessException('CHATROOM_NOT_FOUND');
@@ -278,7 +260,7 @@ export class ChatService {
     await this.chatRoomRepository.save(chatRoom);
 
     if (chatRoom.isBothDeleted()) {
-      await this.chatMessageRepository.delete({ chat: { id: chatId } });
+      await this.chatMessageRepository.deleteAllByChat(chatId);
       await this.chatRoomRepository.remove(chatRoom);
     }
   }
@@ -288,16 +270,14 @@ export class ChatService {
     userId: number,
     file: Express.Multer.File,
   ): Promise<ChatMessageResponse> {
-    const chatRoom = await this.chatRoomRepository.findOne({
-      where: { id: chatId },
-      relations: { seller: true, buyer: true, product: true },
-    });
+    const chatRoom =
+      await this.chatRoomRepository.findByIdWithParticipantsAndProduct(chatId);
 
     if (!chatRoom) {
       throw new BusinessException('CHATROOM_NOT_FOUND');
     }
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -334,10 +314,8 @@ export class ChatService {
   }
 
   async completeTrade(chatId: number, userId: number): Promise<void> {
-    const chatRoom = await this.chatRoomRepository.findOne({
-      where: { id: chatId },
-      relations: { seller: true, buyer: true, product: true },
-    });
+    const chatRoom =
+      await this.chatRoomRepository.findByIdWithParticipantsAndProduct(chatId);
 
     if (!chatRoom) {
       throw new BusinessException('CHATROOM_NOT_FOUND');
@@ -359,7 +337,7 @@ export class ChatService {
 
     if (chatRoom.isBothConfirmed()) {
       chatRoom.product.status = ProductStatus.TRADED;
-      await this.chatRoomRepository.manager.save(chatRoom.product);
+      await this.productRepository.save(chatRoom.product);
     }
 
     await this.chatRoomRepository.save(chatRoom);

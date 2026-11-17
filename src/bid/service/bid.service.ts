@@ -1,9 +1,9 @@
 import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Bid } from '../entities/bid.entity';
-import { Product } from '../../product/entities/product.entity';
-import { User } from '../../user/entities/user.entity';
+import { BidRepository } from '../repository/bid.repository';
+import { ProductRepository } from '../../product/repository/product.repository';
+import { UserRepository } from '../../user/repository/user.repository';
 import { BidCreateRequest } from '../dto/bid-create-request.dto';
 import { BidListRequest } from '../dto/bid-list-request.dto';
 import { BidResponse } from '../dto/bid-response.dto';
@@ -22,12 +22,9 @@ export class BidService {
   private readonly logger = new Logger(BidService.name);
 
   constructor(
-    @InjectRepository(Bid)
-    private readonly bidRepository: Repository<Bid>,
-    @InjectRepository(Product)
-    private readonly productRepository: Repository<Product>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly bidRepository: BidRepository,
+    private readonly productRepository: ProductRepository,
+    private readonly userRepository: UserRepository,
     private readonly sseService: SseService,
     @Inject(forwardRef(() => BidGateway))
     private readonly bidGateway: BidGateway,
@@ -47,9 +44,10 @@ export class BidService {
 
     try {
       // 1. 입찰자 검증
-      const bidder = await queryRunner.manager.findOne(User, {
-        where: { id: bidderId },
-      });
+      const bidder = await this.userRepository.findById(
+        bidderId,
+        queryRunner.manager,
+      );
       if (!bidder) {
         throw new BusinessException('USER_NOT_FOUND');
       }
@@ -60,11 +58,10 @@ export class BidService {
       }
 
       // 2. 상품 비관적 쓰기 락(PESSIMISTIC_WRITE) 조회
-      const product = await queryRunner.manager.findOne(Product, {
-        where: { id: productId },
-        lock: { mode: 'pessimistic_write' },
-        relations: { seller: true },
-      });
+      const product = await this.productRepository.findByIdForUpdate(
+        productId,
+        queryRunner.manager,
+      );
 
       if (!product) {
         throw new BusinessException('PRODUCT_NOT_FOUND');
@@ -95,19 +92,18 @@ export class BidService {
       }
 
       // outbid 알림 대상(직전 최고입찰자)을 가격 갱신/입찰 저장 전에 같은 락 안에서 조회
-      const previousHighestBid = await queryRunner.manager.findOne(Bid, {
-        where: { product: { id: productId } },
-        order: { price: 'DESC' },
-        relations: { bidder: true },
-      });
+      const previousHighestBid = await this.bidRepository.findHighestByProduct(
+        productId,
+        queryRunner.manager,
+      );
 
       // 4. 가격 상승 및 저장
       product.raisePriceTo(request.price);
-      await queryRunner.manager.save(product);
+      await this.productRepository.save(product, queryRunner.manager);
 
       // 5. 입찰 내역 등록
       const bid = Bid.place(product, bidder, request.price);
-      await queryRunner.manager.save(bid);
+      await this.bidRepository.save(bid, queryRunner.manager);
 
       await queryRunner.commitTransaction();
 
@@ -169,21 +165,17 @@ export class BidService {
     const skip = page * size;
     const take = size + 1;
 
-    const exists = await this.productRepository.exists({
-      where: { id: productId },
-    });
+    const exists = await this.productRepository.existsById(productId);
     if (!exists) {
       throw new BusinessException('PRODUCT_NOT_FOUND');
     }
 
     // JPA의 findByProductIdWithBidder (ORDER BY b.price DESC) 슬라이스 페이징 구현
-    const bids = await this.bidRepository.find({
-      where: { product: { id: productId } },
-      relations: { bidder: true },
-      order: { price: 'DESC' },
+    const bids = await this.bidRepository.findPageByProduct(
+      productId,
       skip,
       take,
-    });
+    );
 
     const hasNext = bids.length > size;
     const slicedBids = hasNext ? bids.slice(0, size) : bids;

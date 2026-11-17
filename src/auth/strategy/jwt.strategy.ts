@@ -1,10 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { InjectRepository } from '@nestjs/typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { Repository } from 'typeorm';
 import { BusinessException } from '../../common/exceptions/business.exception';
-import { User } from '../../user/entities/user.entity';
+import { UserRepository } from '../../user/repository/user.repository';
 
 type JwtPayload = {
   sub: string;
@@ -13,10 +11,7 @@ type JwtPayload = {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-  ) {
+  constructor(private readonly userRepository: UserRepository) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -28,9 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload) {
     // Spring Boot의 subject인 userId를 매핑
-    const user = await this.userRepository.findOne({
-      where: { id: Number(payload.sub) },
-    });
+    const user = await this.userRepository.findById(Number(payload.sub));
 
     if (!user) {
       throw new BusinessException('INVALID_TOKEN');

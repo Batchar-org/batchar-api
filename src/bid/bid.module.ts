@@ -8,6 +8,9 @@ import { BidController } from './controller/bid.controller';
 import { ProductModule } from '../product/product.module';
 import { WebSocketModule } from '../websocket/websocket.module';
 import { BlockModule } from '../block/block.module';
+import { BidRepository } from './repository/bid.repository';
+import { ProductRepository } from '../product/repository/product.repository';
+import { UserRepository } from '../user/repository/user.repository';
 
 @Module({
   imports: [
@@ -17,7 +20,7 @@ import { BlockModule } from '../block/block.module';
     BlockModule,
   ],
   controllers: [BidController],
-  providers: [BidService],
+  providers: [BidService, BidRepository, ProductRepository, UserRepository],
   exports: [BidService, TypeOrmModule],
 })
 export class BidModule {}

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { Product } from '../../product/entities/product.entity';
 import { ProductStatus } from '../../product/enum/product-status.enum';
-import { Bid } from '../../bid/entities/bid.entity';
+import { ProductRepository } from '../../product/repository/product.repository';
+import { BidRepository } from '../../bid/repository/bid.repository';
 import { ChatService } from '../../chat/service/chat.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { NotificationService } from '../../notification/service/notification.service';
@@ -15,6 +15,8 @@ export class AuctionCloseManager {
     private readonly dataSource: DataSource,
     private readonly chatService: ChatService,
     private readonly notificationService: NotificationService,
+    private readonly productRepository: ProductRepository,
+    private readonly bidRepository: BidRepository,
   ) {}
 
   // 1. 자동 마감용 (Redis TTL 만료 혹은 스케줄러 배치 호출)
@@ -25,11 +27,10 @@ export class AuctionCloseManager {
     await queryRunner.startTransaction();
 
     try {
-      const lockedProduct = await queryRunner.manager.findOne(Product, {
-        where: { id: productId },
-        lock: { mode: 'pessimistic_write' },
-        relations: { seller: true },
-      });
+      const lockedProduct = await this.productRepository.findByIdForUpdate(
+        productId,
+        queryRunner.manager,
+      );
 
       if (!lockedProduct) {
         throw new BusinessException('PRODUCT_NOT_FOUND');
@@ -44,15 +45,14 @@ export class AuctionCloseManager {
       }
 
       // 최고 입찰건 조회
-      const highestBid = await queryRunner.manager.findOne(Bid, {
-        where: { product: { id: productId } },
-        order: { price: 'DESC' },
-        relations: { bidder: true },
-      });
+      const highestBid = await this.bidRepository.findHighestByProduct(
+        productId,
+        queryRunner.manager,
+      );
 
       if (!highestBid) {
         lockedProduct.closeAsFailed();
-        await queryRunner.manager.save(lockedProduct);
+        await this.productRepository.save(lockedProduct, queryRunner.manager);
         await queryRunner.commitTransaction();
         this.logger.log(
           `[경매 유찰] 입찰자가 없어 유찰 처리되었습니다. productId=${productId}`,
@@ -71,8 +71,8 @@ export class AuctionCloseManager {
       lockedProduct.closeWithWinner(highestBid.bidder);
       highestBid.closeAsWon();
 
-      await queryRunner.manager.save(lockedProduct);
-      await queryRunner.manager.save(highestBid);
+      await this.productRepository.save(lockedProduct, queryRunner.manager);
+      await this.bidRepository.save(highestBid, queryRunner.manager);
 
       // 낙찰 채팅방 생성
       await this.chatService.generateChatRoom(
@@ -128,11 +128,11 @@ export class AuctionCloseManager {
     await queryRunner.startTransaction();
 
     try {
-      const lockedProduct = await queryRunner.manager.findOne(Product, {
-        where: { id: productId, seller: { id: sellerId } },
-        lock: { mode: 'pessimistic_write' },
-        relations: { seller: true },
-      });
+      const lockedProduct = await this.productRepository.findBySellerForUpdate(
+        productId,
+        sellerId,
+        queryRunner.manager,
+      );
 
       if (!lockedProduct) {
         throw new BusinessException('PRODUCT_CLOSE_FORBIDDEN');
@@ -142,15 +142,14 @@ export class AuctionCloseManager {
         throw new BusinessException('AUCTION_ALREADY_CLOSED');
       }
 
-      const highestBid = await queryRunner.manager.findOne(Bid, {
-        where: { product: { id: productId } },
-        order: { price: 'DESC' },
-        relations: { bidder: true },
-      });
+      const highestBid = await this.bidRepository.findHighestByProduct(
+        productId,
+        queryRunner.manager,
+      );
 
       if (!highestBid) {
         lockedProduct.closeAsFailed();
-        await queryRunner.manager.save(lockedProduct);
+        await this.productRepository.save(lockedProduct, queryRunner.manager);
         await queryRunner.commitTransaction();
         this.logger.log(
           `[경매 수동 유찰] 입찰자가 없어 유찰 처리되었습니다. productId=${productId}`,
@@ -168,8 +167,8 @@ export class AuctionCloseManager {
       lockedProduct.closeWithWinner(highestBid.bidder);
       highestBid.closeAsWon();
 
-      await queryRunner.manager.save(lockedProduct);
-      await queryRunner.manager.save(highestBid);
+      await this.productRepository.save(lockedProduct, queryRunner.manager);
+      await this.bidRepository.save(highestBid, queryRunner.manager);
 
       await this.chatService.generateChatRoom(
         lockedProduct,
@@ -220,10 +219,10 @@ export class AuctionCloseManager {
     productId: number,
     winnerId: number,
   ): Promise<number[]> {
-    const bids = await manager.find(Bid, {
-      where: { product: { id: productId } },
-      relations: { bidder: true },
-    });
+    const bids = await this.bidRepository.findAllByProductWithBidder(
+      productId,
+      manager,
+    );
     return [...new Set(bids.map((bid) => Number(bid.bidder.id)))].filter(
       (id) => id !== winnerId,
     );

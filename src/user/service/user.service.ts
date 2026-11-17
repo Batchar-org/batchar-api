@@ -1,12 +1,9 @@
 import { Injectable, forwardRef, Inject } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { User } from '../entities/user.entity';
-import { Product } from '../../product/entities/product.entity';
-import { ProductStatus } from '../../product/enum/product-status.enum';
-import { Bid } from '../../bid/entities/bid.entity';
-import { Wish } from '../../wish/entities/wish.entity';
+import { UserRepository } from '../repository/user.repository';
+import { ProductRepository } from '../../product/repository/product.repository';
+import { BidRepository } from '../../bid/repository/bid.repository';
+import { WishRepository } from '../../wish/repository/wish.repository';
 import { RefreshTokenService } from '../../auth/service/refresh-token.service';
 import { StorageService } from '../../common/storage/service/storage.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
@@ -18,35 +15,31 @@ import { ChangePasswordRequest } from '../dto/change-password-request.dto';
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    @InjectRepository(Product)
-    private readonly productRepository: Repository<Product>,
-    @InjectRepository(Bid)
-    private readonly bidRepository: Repository<Bid>,
-    @InjectRepository(Wish)
-    private readonly wishRepository: Repository<Wish>,
+    private readonly userRepository: UserRepository,
+    private readonly productRepository: ProductRepository,
+    private readonly bidRepository: BidRepository,
+    private readonly wishRepository: WishRepository,
     @Inject(forwardRef(() => RefreshTokenService))
     private readonly refreshTokenService: RefreshTokenService,
     private readonly storageService: StorageService,
   ) {}
 
   async checkDuplicateEmail(email: string): Promise<void> {
-    const exists = await this.userRepository.findOne({ where: { email } });
+    const exists = await this.userRepository.findByEmail(email);
     if (exists) {
       throw new BusinessException('DUPLICATE_EMAIL');
     }
   }
 
   async checkDuplicateName(name: string): Promise<void> {
-    const exists = await this.userRepository.findOne({ where: { name } });
+    const exists = await this.userRepository.findByName(name);
     if (exists) {
       throw new BusinessException('DUPLICATE_NAME');
     }
   }
 
   async getMe(userId: number): Promise<UserMeResponse> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -57,7 +50,7 @@ export class UserService {
     userId: number,
     image: Express.Multer.File,
   ): Promise<UserMeResponse> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -77,7 +70,7 @@ export class UserService {
   }
 
   async deleteProfileImage(userId: number): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -99,7 +92,7 @@ export class UserService {
     userId: number,
     request: UpdateUserRequest,
   ): Promise<UserMeResponse> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -122,7 +115,7 @@ export class UserService {
     userId: number,
     request: PasswordVerifyRequest,
   ): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -137,7 +130,7 @@ export class UserService {
     userId: number,
     request: ChangePasswordRequest,
   ): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -155,29 +148,23 @@ export class UserService {
   }
 
   async deleteMe(userId: number, refreshToken: string): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new BusinessException('USER_NOT_FOUND');
     }
 
-    const existsActiveAuction = await this.productRepository.findOne({
-      where: { seller: { id: userId }, status: ProductStatus.ON_SALE },
-    });
+    const existsActiveAuction =
+      await this.productRepository.findOnSaleBySeller(userId);
     if (existsActiveAuction) {
       throw new BusinessException('HAS_ACTIVE_AUCTION');
     }
 
-    const existsActiveBid = await this.bidRepository.findOne({
-      where: {
-        bidder: { id: userId },
-        product: { status: ProductStatus.ON_SALE },
-      },
-    });
+    const existsActiveBid = await this.bidRepository.findOnSaleByBidder(userId);
     if (existsActiveBid) {
       throw new BusinessException('HAS_ACTIVE_BID');
     }
 
-    await this.wishRepository.delete({ user: { id: userId } });
+    await this.wishRepository.deleteAllByUser(userId);
 
     await this.refreshTokenService.delete(refreshToken);
 

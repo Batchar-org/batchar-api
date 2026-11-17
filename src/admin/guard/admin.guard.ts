@@ -1,15 +1,10 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from '../../user/entities/user.entity';
+import { UserRepository } from '../../user/repository/user.repository';
 import { BusinessException } from '../../common/exceptions/business.exception';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
-  constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-  ) {}
+  constructor(private readonly userRepository: UserRepository) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context
@@ -20,7 +15,7 @@ export class AdminGuard implements CanActivate {
       throw new BusinessException('UNAUTHORIZED');
     }
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findById(userId);
     if (!user || !user.isAdmin) {
       throw new BusinessException('ADMIN_FORBIDDEN');
     }

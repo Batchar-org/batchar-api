@@ -1,8 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
-import { Product } from '../../product/entities/product.entity';
-import { ProductStatus } from '../../product/enum/product-status.enum';
+import { ProductRepository } from '../../product/repository/product.repository';
 import { AuctionCloseManager } from './auction-close.manager';
 import { Cron } from '@nestjs/schedule';
 
@@ -11,8 +8,7 @@ export class AuctionCloseService {
   private readonly logger = new Logger(AuctionCloseService.name);
 
   constructor(
-    @InjectRepository(Product)
-    private readonly productRepository: Repository<Product>,
+    private readonly productRepository: ProductRepository,
     private readonly auctionCloseManager: AuctionCloseManager,
   ) {}
 
@@ -21,12 +17,9 @@ export class AuctionCloseService {
   async closeExpiredBids(): Promise<void> {
     this.logger.log('경매 마감 스케줄러 실행');
     try {
-      const expiredProducts = await this.productRepository.find({
-        where: {
-          status: ProductStatus.ON_SALE,
-          endTime: LessThan(new Date()),
-        },
-      });
+      const expiredProducts = await this.productRepository.findExpiredOnSale(
+        new Date(),
+      );
 
       if (expiredProducts.length === 0) {
         return;

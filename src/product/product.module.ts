@@ -15,6 +15,11 @@ import { StorageModule } from '../common/storage/storage.module';
 import { AuctionModule } from '../auction/auction.module';
 import { RedisModule } from '../common/redis/redis.module';
 import { BlockModule } from '../block/block.module';
+import { ProductRepository } from './repository/product.repository';
+import { ProductMediaRepository } from './repository/product-media.repository';
+import { UserRepository } from '../user/repository/user.repository';
+import { WishRepository } from '../wish/repository/wish.repository';
+import { BidRepository } from '../bid/repository/bid.repository';
 
 @Module({
   imports: [
@@ -30,6 +35,11 @@ import { BlockModule } from '../block/block.module';
     ProductMediaService,
     ProductRetentionCleanupService,
     SseService,
+    ProductRepository,
+    ProductMediaRepository,
+    UserRepository,
+    WishRepository,
+    BidRepository,
   ],
   exports: [ProductService, ProductMediaService, SseService, TypeOrmModule],
 })

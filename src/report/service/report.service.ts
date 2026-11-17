@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThan, Repository } from 'typeorm';
 import { Report } from '../entities/report.entity';
+import {
+  ReportRepository,
+  ReportTarget,
+} from '../repository/report.repository';
+import { UserRepository } from '../../user/repository/user.repository';
+import { ProductRepository } from '../../product/repository/product.repository';
+import { ChatMessageRepository } from '../../chat/repository/chat-message.repository';
+import { ChatRoomRepository } from '../../chat/repository/chat-room.repository';
 import { User } from '../../user/entities/user.entity';
 import { Product } from '../../product/entities/product.entity';
 import { ChatMessage } from '../../chat/entities/chat-message.entity';
@@ -18,16 +24,11 @@ export class ReportService {
   private static readonly DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
   constructor(
-    @InjectRepository(Report)
-    private readonly reportRepository: Repository<Report>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    @InjectRepository(Product)
-    private readonly productRepository: Repository<Product>,
-    @InjectRepository(ChatMessage)
-    private readonly chatMessageRepository: Repository<ChatMessage>,
-    @InjectRepository(ChatRoom)
-    private readonly chatRoomRepository: Repository<ChatRoom>,
+    private readonly reportRepository: ReportRepository,
+    private readonly userRepository: UserRepository,
+    private readonly productRepository: ProductRepository,
+    private readonly chatMessageRepository: ChatMessageRepository,
+    private readonly chatRoomRepository: ChatRoomRepository,
     private readonly notificationService: NotificationService,
   ) {}
 
@@ -41,9 +42,7 @@ export class ReportService {
       throw new BusinessException('SELF_REPORT_NOT_ALLOWED');
     }
 
-    const exists = await this.userRepository.exists({
-      where: { id: targetUserId },
-    });
+    const exists = await this.userRepository.existsById(targetUserId);
     if (!exists) {
       throw new BusinessException('USER_NOT_FOUND');
     }
@@ -75,9 +74,7 @@ export class ReportService {
   ): Promise<number> {
     const { targetProductId, reason, description } = request;
 
-    const exists = await this.productRepository.exists({
-      where: { id: targetProductId },
-    });
+    const exists = await this.productRepository.existsById(targetProductId);
     if (!exists) {
       throw new BusinessException('PRODUCT_NOT_FOUND');
     }
@@ -97,10 +94,10 @@ export class ReportService {
   ): Promise<number> {
     const { targetMessageId, reason, description } = request;
 
-    const targetMessage = await this.chatMessageRepository.findOne({
-      where: { id: targetMessageId },
-      relations: { sender: true, chat: { seller: true, buyer: true } },
-    });
+    const targetMessage =
+      await this.chatMessageRepository.findByIdWithSenderAndChat(
+        targetMessageId,
+      );
     if (!targetMessage) {
       throw new BusinessException('CHAT_MESSAGE_NOT_FOUND');
     }
@@ -123,20 +120,14 @@ export class ReportService {
   // 동일 신고자 + 동일 대상 24시간 내 중복 신고 차단 (Supabase reports_prevent_duplicate 트리거와 동일)
   private async ensureNoDuplicate(
     reporterId: number,
-    target: {
-      targetUser?: { id: number };
-      targetProduct?: { id: number };
-      targetMessage?: { id: number };
-    },
+    target: ReportTarget,
   ): Promise<void> {
     const since = new Date(Date.now() - ReportService.DEDUP_WINDOW_MS);
-    const duplicate = await this.reportRepository.findOne({
-      where: {
-        reporter: { id: reporterId },
-        ...target,
-        createdAt: MoreThan(since),
-      },
-    });
+    const duplicate = await this.reportRepository.findRecentDuplicate(
+      reporterId,
+      target,
+      since,
+    );
     if (duplicate) {
       throw new BusinessException('DUPLICATE_REPORT_WITHIN_24H');
     }
@@ -171,10 +162,8 @@ export class ReportService {
     reporterId: number,
     targetUserId: number,
   ): Promise<void> {
-    const chatRoom = await this.chatRoomRepository.findOne({
-      where: { id: chatId },
-      relations: { seller: true, buyer: true },
-    });
+    const chatRoom =
+      await this.chatRoomRepository.findByIdWithParticipants(chatId);
     if (!chatRoom) {
       throw new BusinessException('CHATROOM_NOT_FOUND');
     }

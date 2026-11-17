@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { ChatRoom } from '../../chat/entities/chat-room.entity';
-import { User } from '../../user/entities/user.entity';
-import { FertilityLog } from '../entities/fertility-log.entity';
+import { ChatRoomRepository } from '../../chat/repository/chat-room.repository';
+import { UserRepository } from '../../user/repository/user.repository';
+import { FertilityLogRepository } from '../repository/fertility-log.repository';
 import { FertilityAction } from '../enum/fertility-action.enum';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { BlockService } from '../../block/service/block.service';
@@ -12,6 +12,9 @@ export class FertilityService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly blockService: BlockService,
+    private readonly chatRoomRepository: ChatRoomRepository,
+    private readonly userRepository: UserRepository,
+    private readonly fertilityLogRepository: FertilityLogRepository,
   ) {}
 
   // 채팅 상대의 비옥도에 액션(물 주기 +0.5 / 산성비 -0.5)을 거래당 1회 적용한다.
@@ -21,10 +24,10 @@ export class FertilityService {
     action: FertilityAction,
   ): Promise<number> {
     return this.dataSource.transaction(async (manager) => {
-      const chatRoom = await manager.findOne(ChatRoom, {
-        where: { id: chatId },
-        relations: { seller: true, buyer: true },
-      });
+      const chatRoom = await this.chatRoomRepository.findByIdWithParticipants(
+        chatId,
+        manager,
+      );
       if (!chatRoom) {
         throw new BusinessException('CHATROOM_NOT_FOUND');
       }
@@ -49,18 +52,20 @@ export class FertilityService {
       }
 
       // 동시성 안전을 위해 수신자 행을 잠그고 읽는다.
-      const receiver = await manager.findOne(User, {
-        where: { id: receiverId },
-        lock: { mode: 'pessimistic_write' },
-      });
+      const receiver = await this.userRepository.findByIdForUpdate(
+        receiverId,
+        manager,
+      );
       if (!receiver) {
         throw new BusinessException('USER_NOT_FOUND');
       }
 
       // 한 거래(채팅)당 평가는 1회만 허용한다(물 주기/산성비 중 하나).
-      const already = await manager.findOne(FertilityLog, {
-        where: { giver: { id: giverId }, chatRoom: { id: chatId } },
-      });
+      const already = await this.fertilityLogRepository.findByGiverAndChat(
+        giverId,
+        chatId,
+        manager,
+      );
       if (already) {
         throw new BusinessException('FERTILITY_ALREADY_GIVEN');
       }
@@ -77,15 +82,13 @@ export class FertilityService {
         }
         receiver.acidRain();
       }
-      await manager.save(receiver);
+      await this.userRepository.save(receiver, manager);
 
-      const log = manager.create(FertilityLog, {
-        giver,
-        receiver,
-        chatRoom,
-        action,
-      });
-      await manager.save(log);
+      const log = this.fertilityLogRepository.create(
+        { giver, receiver, chatRoom, action },
+        manager,
+      );
+      await this.fertilityLogRepository.save(log, manager);
 
       return receiver.fertility;
     });

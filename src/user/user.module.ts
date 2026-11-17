@@ -8,6 +8,10 @@ import { UserService } from './service/user.service';
 import { UserController } from './controller/user.controller';
 import { AuthModule } from '../auth/auth.module';
 import { StorageModule } from '../common/storage/storage.module';
+import { UserRepository } from './repository/user.repository';
+import { ProductRepository } from '../product/repository/product.repository';
+import { BidRepository } from '../bid/repository/bid.repository';
+import { WishRepository } from '../wish/repository/wish.repository';
 
 @Module({
   imports: [
@@ -16,7 +20,13 @@ import { StorageModule } from '../common/storage/storage.module';
     StorageModule,
   ],
   controllers: [UserController],
-  providers: [UserService],
+  providers: [
+    UserService,
+    UserRepository,
+    ProductRepository,
+    BidRepository,
+    WishRepository,
+  ],
   exports: [TypeOrmModule, UserService],
 })
 export class UserModule {}
