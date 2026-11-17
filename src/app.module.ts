@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import { Module, ValidationPipe } from '@nestjs/common';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -11,7 +12,10 @@ import { BidModule } from './bid/bid.module';
 import { BlockModule } from './block/block.module';
 import { ChatModule } from './chat/chat.module';
 import { EmailModule } from './common/email/email.module';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { SnakeCaseInterceptor } from './common/interceptors/snake-case.interceptor';
 import { LoggerConfigModule } from './common/logger/logger.module';
+import { NumericParamPipe } from './common/pipes/numeric-param.pipe';
 import { RedisModule } from './common/redis/redis.module';
 import { StorageModule } from './common/storage/storage.module';
 import { FertilityModule } from './fertility/fertility.module';
@@ -57,6 +61,18 @@ import { WishModule } from './wish/wish.module';
     FertilityModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // 전역 요청 처리 파이프라인. main.ts가 아닌 여기서 등록해야 e2e 테스트(Test.createTestingModule)에도 똑같이 적용된다.
+    // 실행 순서: Interceptor(요청 키 camelCase 변환) → Pipe(등록 순서대로) → Handler → Interceptor(응답 snake_case) / 예외는 Filter.
+    { provide: APP_INTERCEPTOR, useClass: SnakeCaseInterceptor },
+    { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+    // NumericParamPipe가 ValidationPipe보다 먼저 와야 원본 문자열을 검사할 수 있다.
+    { provide: APP_PIPE, useClass: NumericParamPipe },
+    {
+      provide: APP_PIPE,
+      useValue: new ValidationPipe({ transform: true, whitelist: true }),
+    },
+  ],
 })
 export class AppModule {}

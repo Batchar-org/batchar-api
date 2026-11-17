@@ -1,5 +1,4 @@
 import './load-env'; // .env를 다른 모든 import보다 먼저 로드 (TypeORM forRoot가 process.env를 읽는 시점 문제 회피)
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { WsAdapter } from '@nestjs/platform-ws';
@@ -7,8 +6,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { SnakeCaseInterceptor } from './common/interceptors/snake-case.interceptor';
+import { BusinessException } from './common/exceptions/business.exception';
 
 const DEFAULT_CORS_ORIGINS = [
   'http://localhost:5173',
@@ -32,6 +30,7 @@ async function bootstrap() {
   // bufferLogs: 커스텀 로거가 준비되기 전의 부팅 로그를 모아뒀다가 한 번에 출력
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
+    bodyParser: false, // 아래에서 직접 등록 (깨진 JSON 에러 매핑)
   });
 
   // pino 로거를 앱 전역 로거로 지정 → 부팅 로그 + 모든 new Logger() 호출이 pino로 통합됨
@@ -72,15 +71,16 @@ async function bootstrap() {
     });
   }
 
-  // 글로벌 인터셉터 / 필터 / 검증 파이프 등록
-  app.useGlobalInterceptors(new SnakeCaseInterceptor());
-  app.useGlobalFilters(new GlobalExceptionFilter());
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-    }),
-  );
+  // 요청 바디 파서 (Nest 기본값과 동일한 json + urlencoded(extended)).
+  // 직접 등록하는 이유: 깨진 JSON의 SyntaxError를 Nest가 일반 BadRequestException으로 바꾸기 전에
+  // INVALID_JSON_FORMAT으로 매핑하기 위해. (전역 filter·pipe·interceptor는 AppModule의 APP_* provider)
+  app.useBodyParser('json');
+  app.use((err: unknown, _req: Request, _res: Response, next: NextFunction) => {
+    const isJsonParseError =
+      (err as { type?: string } | null)?.type === 'entity.parse.failed';
+    next(isJsonParseError ? new BusinessException('INVALID_JSON_FORMAT') : err);
+  });
+  app.useBodyParser('urlencoded', { extended: true });
 
   const port = process.env.PORT ?? 18080;
   await app.listen(port);
