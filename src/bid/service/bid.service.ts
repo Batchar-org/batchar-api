@@ -1,21 +1,22 @@
 import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { Bid } from '../entities/bid.entity';
-import { BidRepository } from '../repository/bid.repository';
+
+import { BlockService } from '../../block/service/block.service';
+import { BusinessException } from '../../common/exceptions/business.exception';
+import { NotificationService } from '../../notification/service/notification.service';
 import { ProductRepository } from '../../product/repository/product.repository';
+import { SseService } from '../../product/service/sse.service';
 import { UserRepository } from '../../user/repository/user.repository';
+// 순환 참조 방지를 위해 BidGateway의 타입 임포트
+import { BidGateway } from '../../websocket/gateway/bid.gateway';
+
+import { BidBroadcast } from '../dto/bid-broadcast.dto';
 import { BidCreateRequest } from '../dto/bid-create-request.dto';
 import { BidListRequest } from '../dto/bid-list-request.dto';
 import { BidResponse } from '../dto/bid-response.dto';
 import { BidSummary } from '../dto/bid-summary.dto';
-import { BidBroadcast } from '../dto/bid-broadcast.dto';
-import { SseService } from '../../product/service/sse.service';
-import { BlockService } from '../../block/service/block.service';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { NotificationService } from '../../notification/service/notification.service';
-
-// 순환 참조 방지를 위해 BidGateway의 타입 임포트
-import { BidGateway } from '../../websocket/gateway/bid.gateway';
+import { Bid } from '../entities/bid.entity';
+import { BidRepository } from '../repository/bid.repository';
 
 @Injectable()
 export class BidService {

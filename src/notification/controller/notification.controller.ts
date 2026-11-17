@@ -10,12 +10,14 @@ import {
   UseGuards,
   HttpCode,
 } from '@nestjs/common';
-import { NotificationService } from '../service/notification.service';
+
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { RegisterDeviceTokenRequest } from '../dto/register-device-token-request.dto';
+
 import { NotificationListRequest } from '../dto/notification-list-request.dto';
+import { RegisterDeviceTokenRequest } from '../dto/register-device-token-request.dto';
 import { UpdateNotificationSettingRequest } from '../dto/update-notification-setting-request.dto';
+import { NotificationService } from '../service/notification.service';
 
 @Controller('api/notifications')
 @UseGuards(JwtAuthGuard)

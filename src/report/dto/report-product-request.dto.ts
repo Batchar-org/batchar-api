@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
@@ -7,7 +8,7 @@ import {
   Min,
   MaxLength,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+
 import { ReportReason } from '../enum/report-reason.enum';
 
 export class ReportProductRequest {

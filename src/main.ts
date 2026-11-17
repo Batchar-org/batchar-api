@@ -1,13 +1,14 @@
 import './load-env'; // .env를 다른 모든 import보다 먼저 로드 (TypeORM forRoot가 process.env를 읽는 시점 문제 회피)
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { SnakeCaseInterceptor } from './common/interceptors/snake-case.interceptor';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { WsAdapter } from '@nestjs/platform-ws';
-import { Logger } from 'nestjs-pino';
+import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { WsAdapter } from '@nestjs/platform-ws';
 import type { NextFunction, Request, Response } from 'express';
+import { Logger } from 'nestjs-pino';
+
+import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { SnakeCaseInterceptor } from './common/interceptors/snake-case.interceptor';
 
 const DEFAULT_CORS_ORIGINS = [
   'http://localhost:5173',

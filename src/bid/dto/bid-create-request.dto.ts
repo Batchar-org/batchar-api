@@ -1,5 +1,5 @@
-import { IsInt, IsNotEmpty, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsInt, IsNotEmpty, Min } from 'class-validator';
 
 export class BidCreateRequest {
   @Type(() => Number)

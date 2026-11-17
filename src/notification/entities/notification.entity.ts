@@ -6,8 +6,10 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
+
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../user/entities/user.entity';
+
 import {
   NotificationType,
   NotificationData,

@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { Wish } from '../entities/wish.entity';
-import { WishRepository } from '../repository/wish.repository';
-import { ProductRepository } from '../../product/repository/product.repository';
-import { UserRepository } from '../../user/repository/user.repository';
+
 import { BidRepository } from '../../bid/repository/bid.repository';
-import { ProductMediaService } from '../../product/service/product-media.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
+import { ProductRepository } from '../../product/repository/product.repository';
+import { ProductMediaService } from '../../product/service/product-media.service';
+import { UserRepository } from '../../user/repository/user.repository';
+
 import { WishListRequest } from '../dto/wish-list-request.dto';
 import { WishSummary } from '../dto/wish-summary.dto';
+import { Wish } from '../entities/wish.entity';
+import { WishRepository } from '../repository/wish.repository';
 
 @Injectable()
 export class WishService {

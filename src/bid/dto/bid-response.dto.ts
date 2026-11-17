@@ -1,5 +1,5 @@
-import { BidStatus } from '../enum/bid-status.enum';
 import type { Bid } from '../entities/bid.entity';
+import { BidStatus } from '../enum/bid-status.enum';
 
 export class BidResponse {
   id: number;

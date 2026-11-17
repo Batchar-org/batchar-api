@@ -6,10 +6,12 @@ import {
   HttpCode,
   ParseIntPipe,
 } from '@nestjs/common';
-import { FertilityService } from '../service/fertility.service';
-import { FertilityAction } from '../enum/fertility-action.enum';
+
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+
+import { FertilityAction } from '../enum/fertility-action.enum';
+import { FertilityService } from '../service/fertility.service';
 
 @Controller('api/chats')
 export class FertilityController {

@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, LessThan, Repository } from 'typeorm';
+
+import { Wish } from '../../wish/entities/wish.entity';
+
 import { Product } from '../entities/product.entity';
 import { ProductStatus } from '../enum/product-status.enum';
 import { ProductViewType } from '../enum/product-view-type.enum';
-import { Wish } from '../../wish/entities/wish.entity';
 
 export type ProductListQuery = {
   view: ProductViewType;

@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
-import { Bid } from '../entities/bid.entity';
+
 import { ProductStatus } from '../../product/enum/product-status.enum';
+
+import { Bid } from '../entities/bid.entity';
 
 @Injectable()
 export class BidRepository {

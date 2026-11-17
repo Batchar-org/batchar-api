@@ -1,8 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
-import { RedisService } from '../../redis/service/redis.service';
-import { EmailTemplateBuilder } from './email-template.builder';
+import { Injectable, Logger } from '@nestjs/common';
+
 import { BusinessException } from '../../exceptions/business.exception';
+import { RedisService } from '../../redis/service/redis.service';
+
+import { EmailTemplateBuilder } from './email-template.builder';
 
 @Injectable()
 export class EmailService {

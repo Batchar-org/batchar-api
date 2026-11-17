@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ProductRepository } from '../../product/repository/product.repository';
-import { AuctionCloseManager } from './auction-close.manager';
 import { Cron } from '@nestjs/schedule';
+
+import { ProductRepository } from '../../product/repository/product.repository';
+
+import { AuctionCloseManager } from './auction-close.manager';
 
 @Injectable()
 export class AuctionCloseService {

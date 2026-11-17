@@ -1,12 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
-import { ProductMedia } from '../entities/product-media.entity';
-import { ProductMediaRepository } from '../repository/product-media.repository';
-import { Product } from '../entities/product.entity';
-import { StorageService } from '../../common/storage/service/storage.service';
-import { getProductMediaTypeFromFileName } from '../enum/product-media-type.enum';
+
 import { BusinessException } from '../../common/exceptions/business.exception';
+import { StorageService } from '../../common/storage/service/storage.service';
+
 import { ProductMediaInfo } from '../dto/product-media-info.dto';
+import { ProductMedia } from '../entities/product-media.entity';
+import { Product } from '../entities/product.entity';
+import { getProductMediaTypeFromFileName } from '../enum/product-media-type.enum';
+import { ProductMediaRepository } from '../repository/product-media.repository';
 
 @Injectable()
 export class ProductMediaService {

@@ -5,8 +5,10 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Product } from './product.entity';
+
 import { ProductMediaType } from '../enum/product-media-type.enum';
+
+import { Product } from './product.entity';
 
 @Entity({ name: 'product_media' })
 export class ProductMedia {

@@ -6,9 +6,11 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
+
 import { BaseEntity } from '../../common/entities/base.entity';
 import { Product } from '../../product/entities/product.entity';
 import { User } from '../../user/entities/user.entity';
+
 import { ChatStatus } from '../enum/chat-status.enum';
 
 @Entity({ name: 'chat_room' })

@@ -9,11 +9,13 @@ import {
   HttpCode,
   Delete,
 } from '@nestjs/common';
-import { AdminService } from '../service/admin.service';
-import { AdminGuard } from '../guard/admin.guard';
+
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
+
 import { ReportListRequest } from '../dto/report-list-request.dto';
 import { ResolveReportRequest } from '../dto/resolve-report-request.dto';
+import { AdminGuard } from '../guard/admin.guard';
+import { AdminService } from '../service/admin.service';
 
 @Controller('api/admin')
 @UseGuards(JwtAuthGuard, AdminGuard)

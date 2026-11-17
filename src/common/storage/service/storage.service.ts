@@ -1,4 +1,3 @@
-import { Injectable, Logger } from '@nestjs/common';
 import {
   S3Client,
   PutObjectCommand,
@@ -6,10 +5,13 @@ import {
   S3ClientConfig,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Injectable, Logger } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
+
+import { BusinessException } from '../../exceptions/business.exception';
+
 import { PresignedUrlRequest } from '../dto/presigned-url-request.dto';
 import { PresignedUrlResponse } from '../dto/presigned-url-response.dto';
-import { BusinessException } from '../../exceptions/business.exception';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class StorageService {

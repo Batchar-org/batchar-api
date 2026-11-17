@@ -1,16 +1,18 @@
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DeviceToken } from './entities/device-token.entity';
-import { Notification } from './entities/notification.entity';
-import { NotificationSetting } from './entities/notification-setting.entity';
+
 import { User } from '../user/entities/user.entity';
-import { NotificationService } from './service/notification.service';
-import { ExpoPushService } from './service/expo-push.service';
-import { NotificationController } from './controller/notification.controller';
-import { DeviceTokenRepository } from './repository/device-token.repository';
-import { NotificationRepository } from './repository/notification.repository';
-import { NotificationSettingRepository } from './repository/notification-setting.repository';
 import { UserRepository } from '../user/repository/user.repository';
+
+import { NotificationController } from './controller/notification.controller';
+import { DeviceToken } from './entities/device-token.entity';
+import { NotificationSetting } from './entities/notification-setting.entity';
+import { Notification } from './entities/notification.entity';
+import { DeviceTokenRepository } from './repository/device-token.repository';
+import { NotificationSettingRepository } from './repository/notification-setting.repository';
+import { NotificationRepository } from './repository/notification.repository';
+import { ExpoPushService } from './service/expo-push.service';
+import { NotificationService } from './service/notification.service';
 
 /**
  * 알림은 bid/auction/chat/admin 등 다수 도메인에서 호출하는 횡단 관심사이며,

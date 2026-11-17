@@ -8,10 +8,12 @@ import {
   UseGuards,
   HttpCode,
 } from '@nestjs/common';
-import { WishService } from '../service/wish.service';
+
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+
 import { WishListRequest } from '../dto/wish-list-request.dto';
+import { WishService } from '../service/wish.service';
 
 @Controller('api/wishes')
 @UseGuards(JwtAuthGuard)

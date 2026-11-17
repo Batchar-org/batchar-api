@@ -1,25 +1,26 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { AdminModule } from './admin/admin.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { RedisModule } from './common/redis/redis.module';
-import { StorageModule } from './common/storage/storage.module';
-import { EmailModule } from './common/email/email.module';
-import { NotificationModule } from './notification/notification.module';
 import { AuctionModule } from './auction/auction.module';
 import { AuthModule } from './auth/auth.module';
-import { UserModule } from './user/user.module';
-import { ProductModule } from './product/product.module';
-import { WishModule } from './wish/wish.module';
 import { BidModule } from './bid/bid.module';
-import { ChatModule } from './chat/chat.module';
-import { WebSocketModule } from './websocket/websocket.module';
 import { BlockModule } from './block/block.module';
-import { ReportModule } from './report/report.module';
-import { AdminModule } from './admin/admin.module';
-import { FertilityModule } from './fertility/fertility.module';
+import { ChatModule } from './chat/chat.module';
+import { EmailModule } from './common/email/email.module';
 import { LoggerConfigModule } from './common/logger/logger.module';
+import { RedisModule } from './common/redis/redis.module';
+import { StorageModule } from './common/storage/storage.module';
+import { FertilityModule } from './fertility/fertility.module';
+import { NotificationModule } from './notification/notification.module';
+import { ProductModule } from './product/product.module';
+import { ReportModule } from './report/report.module';
+import { UserModule } from './user/user.module';
+import { WebSocketModule } from './websocket/websocket.module';
+import { WishModule } from './wish/wish.module';
 
 @Module({
   imports: [

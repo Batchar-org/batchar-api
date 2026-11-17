@@ -1,12 +1,14 @@
 import { Body, Controller, Headers, HttpCode, Post } from '@nestjs/common';
-import { AuthService } from '../service/auth.service';
+
 import { EmailService } from '../../common/email/service/email.service';
-import { SignupRequest } from '../dto/signup-request.dto';
-import { LoginRequest } from '../dto/login-request.dto';
-import { RefreshRequest } from '../dto/refresh-request.dto';
-import { PasswordResetRequest } from '../dto/password-reset-request.dto';
+
 import { EmailVerifyCodeRequest } from '../dto/email-verify-code-request.dto';
 import { EmailVerifyRequest } from '../dto/email-verify-request.dto';
+import { LoginRequest } from '../dto/login-request.dto';
+import { PasswordResetRequest } from '../dto/password-reset-request.dto';
+import { RefreshRequest } from '../dto/refresh-request.dto';
+import { SignupRequest } from '../dto/signup-request.dto';
+import { AuthService } from '../service/auth.service';
 
 @Controller('api/auth')
 export class AuthController {

@@ -1,3 +1,5 @@
+import { Inject, forwardRef, Logger, Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -6,11 +8,10 @@ import {
   OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, WebSocket } from 'ws';
-import { Inject, forwardRef, Logger, Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ChatService } from '../../chat/service/chat.service';
+
 import { BidBroadcast } from '../../bid/dto/bid-broadcast.dto';
 import { ChatMessageResponse } from '../../chat/dto/chat-message-response.dto';
+import { ChatService } from '../../chat/service/chat.service';
 
 interface StompFrame {
   command: string;

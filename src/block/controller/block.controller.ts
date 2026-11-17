@@ -7,9 +7,11 @@ import {
   UseGuards,
   HttpCode,
 } from '@nestjs/common';
-import { BlockService } from '../service/block.service';
+
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+
+import { BlockService } from '../service/block.service';
 
 @Controller('api/blocks')
 @UseGuards(JwtAuthGuard)

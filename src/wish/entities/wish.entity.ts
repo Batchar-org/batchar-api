@@ -5,9 +5,10 @@ import {
   JoinColumn,
   Unique,
 } from 'typeorm';
+
 import { BaseEntity } from '../../common/entities/base.entity';
-import { User } from '../../user/entities/user.entity';
 import { Product } from '../../product/entities/product.entity';
+import { User } from '../../user/entities/user.entity';
 
 @Entity({ name: 'wishes' })
 @Unique(['user', 'product'])

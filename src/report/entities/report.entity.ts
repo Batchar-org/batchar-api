@@ -5,11 +5,13 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { BaseEntity } from '../../common/entities/base.entity';
-import { User } from '../../user/entities/user.entity';
-import { Product } from '../../product/entities/product.entity';
+
 import { ChatMessage } from '../../chat/entities/chat-message.entity';
 import { ChatRoom } from '../../chat/entities/chat-room.entity';
+import { BaseEntity } from '../../common/entities/base.entity';
+import { Product } from '../../product/entities/product.entity';
+import { User } from '../../user/entities/user.entity';
+
 import { ReportReason } from '../enum/report-reason.enum';
 import { ReportStatus } from '../enum/report-status.enum';
 

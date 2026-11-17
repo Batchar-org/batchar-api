@@ -1,22 +1,24 @@
 import { Injectable, Inject, forwardRef, Logger } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
-import { ChatRoom } from '../entities/chat-room.entity';
-import { ChatMessage } from '../entities/chat-message.entity';
+
+import { BlockService } from '../../block/service/block.service';
+import { BusinessException } from '../../common/exceptions/business.exception';
+import { StorageService } from '../../common/storage/service/storage.service';
+import { NotificationService } from '../../notification/service/notification.service';
 import { Product } from '../../product/entities/product.entity';
-import { User } from '../../user/entities/user.entity';
-import { ChatRoomRepository } from '../repository/chat-room.repository';
-import { ChatMessageRepository } from '../repository/chat-message.repository';
-import { UserRepository } from '../../user/repository/user.repository';
+import { ProductStatus } from '../../product/enum/product-status.enum';
 import { ProductRepository } from '../../product/repository/product.repository';
 import { ProductMediaService } from '../../product/service/product-media.service';
-import { StorageService } from '../../common/storage/service/storage.service';
-import { BlockService } from '../../block/service/block.service';
+import { User } from '../../user/entities/user.entity';
+import { UserRepository } from '../../user/repository/user.repository';
 import { BidGateway } from '../../websocket/gateway/bid.gateway';
-import { BusinessException } from '../../common/exceptions/business.exception';
-import { NotificationService } from '../../notification/service/notification.service';
+
 import { ChatListResponse } from '../dto/chat-list-response.dto';
 import { ChatMessageResponse } from '../dto/chat-message-response.dto';
-import { ProductStatus } from '../../product/enum/product-status.enum';
+import { ChatMessage } from '../entities/chat-message.entity';
+import { ChatRoom } from '../entities/chat-room.entity';
+import { ChatMessageRepository } from '../repository/chat-message.repository';
+import { ChatRoomRepository } from '../repository/chat-room.repository';
 
 @Injectable()
 export class ChatService {

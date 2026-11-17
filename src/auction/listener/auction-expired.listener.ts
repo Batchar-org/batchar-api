@@ -4,9 +4,11 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
-import { RedisService } from '../../common/redis/service/redis.service';
-import { AuctionCloseManager } from '../service/auction-close.manager';
 import Redis from 'ioredis';
+
+import { RedisService } from '../../common/redis/service/redis.service';
+
+import { AuctionCloseManager } from '../service/auction-close.manager';
 
 @Injectable()
 export class AuctionExpiredListener implements OnModuleInit, OnModuleDestroy {

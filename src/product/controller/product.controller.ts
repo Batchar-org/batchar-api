@@ -12,17 +12,18 @@ import {
   UploadedFiles,
   HttpCode,
 } from '@nestjs/common';
+import { Inject, forwardRef } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ProductService } from '../service/product.service';
+
+import { AuctionCloseManager } from '../../auction/service/auction-close.manager';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../auth/guard/optional-jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+
 import { ProductCreateRequest } from '../dto/product-create-request.dto';
 import { ProductListRequest } from '../dto/product-list-request.dto';
 import { ProductUpdateRequest } from '../dto/product-update-request.dto';
-
-import { Inject, forwardRef } from '@nestjs/common';
-import { AuctionCloseManager } from '../../auction/service/auction-close.manager';
+import { ProductService } from '../service/product.service';
 
 // 순환 참조 방지를 위해 AuctionCloseManager의 인터페이스를 명시하거나 forwardRef를 통해 임포트합니다.
 @Controller('api/products')

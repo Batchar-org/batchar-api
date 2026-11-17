@@ -1,22 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { Product } from '../entities/product.entity';
-import { ProductRepository } from '../repository/product.repository';
-import { UserRepository } from '../../user/repository/user.repository';
-import { WishRepository } from '../../wish/repository/wish.repository';
+
 import { BidRepository } from '../../bid/repository/bid.repository';
-import { ProductMediaService } from './product-media.service';
-import { RedisService } from '../../common/redis/service/redis.service';
 import { BlockService } from '../../block/service/block.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
-import { ProductResponse } from '../dto/product-response.dto';
+import { RedisService } from '../../common/redis/service/redis.service';
+import { UserRepository } from '../../user/repository/user.repository';
+import { WishRepository } from '../../wish/repository/wish.repository';
+
 import { ProductCreateRequest } from '../dto/product-create-request.dto';
-import { ProductListRequest } from '../dto/product-list-request.dto';
-import { ProductSummary } from '../dto/product-summary.dto';
 import { ProductDetailResponse } from '../dto/product-detail-response.dto';
+import { ProductListRequest } from '../dto/product-list-request.dto';
+import { ProductResponse } from '../dto/product-response.dto';
+import { ProductSummary } from '../dto/product-summary.dto';
 import { ProductUpdateRequest } from '../dto/product-update-request.dto';
+import { Product } from '../entities/product.entity';
 import { ProductStatus } from '../enum/product-status.enum';
 import { requiresAuth } from '../enum/product-view-type.enum';
+import { ProductRepository } from '../repository/product.repository';
+
+import { ProductMediaService } from './product-media.service';
 
 @Injectable()
 export class ProductService {

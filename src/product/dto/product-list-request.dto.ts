@@ -1,5 +1,6 @@
-import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+
 import { ProductViewType } from '../enum/product-view-type.enum';
 
 export class ProductListRequest {

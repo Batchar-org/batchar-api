@@ -1,18 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { User } from '../../user/entities/user.entity';
-import { UserRepository } from '../../user/repository/user.repository';
-import { RefreshTokenService } from './refresh-token.service';
+
 import { EmailService } from '../../common/email/service/email.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
-import { SignupRequest } from '../dto/signup-request.dto';
-import { SignupResponse } from '../dto/signup-response.dto';
+import { User } from '../../user/entities/user.entity';
+import { UserRepository } from '../../user/repository/user.repository';
+
 import { LoginRequest } from '../dto/login-request.dto';
 import { LoginResponse } from '../dto/login-response.dto';
 import { PasswordResetRequest } from '../dto/password-reset-request.dto';
 import { RefreshRequest } from '../dto/refresh-request.dto';
 import { RefreshResponse } from '../dto/refresh-response.dto';
+import { SignupRequest } from '../dto/signup-request.dto';
+import { SignupResponse } from '../dto/signup-response.dto';
+
+import { RefreshTokenService } from './refresh-token.service';
 
 type AuthTokenPayload = {
   sub: string;

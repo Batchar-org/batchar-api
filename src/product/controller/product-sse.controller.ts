@@ -1,6 +1,7 @@
 import { Controller, Sse, Param } from '@nestjs/common';
-import { SseService, MessageEvent } from '../service/sse.service';
 import { Observable } from 'rxjs';
+
+import { SseService, MessageEvent } from '../service/sse.service';
 
 @Controller('api/products/:productId')
 export class ProductSseController {

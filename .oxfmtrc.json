@@ -4,5 +4,19 @@
   "trailingComma": "all",
   "printWidth": 80,
   "sortPackageJson": false,
+  "sortImports": {
+    "customGroups": [
+      { "groupName": "up-2", "elementNamePattern": ["../../**"] },
+      { "groupName": "up-1", "elementNamePattern": ["../**"] }
+    ],
+    "groups": [
+      "builtin",
+      "external",
+      "up-2",
+      "up-1",
+      ["sibling", "index"],
+      "unknown"
+    ]
+  },
   "ignorePatterns": []
 }

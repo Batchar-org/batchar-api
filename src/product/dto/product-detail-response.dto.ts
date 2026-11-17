@@ -1,4 +1,5 @@
 import { ProductStatus } from '../enum/product-status.enum';
+
 import { ProductMediaInfo } from './product-media-info.dto';
 
 export class ProductDetailResponse {

@@ -1,5 +1,6 @@
-import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+
 import { ReportStatus } from '../../report/enum/report-status.enum';
 
 export class ReportListRequest {

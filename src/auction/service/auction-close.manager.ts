@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { ProductStatus } from '../../product/enum/product-status.enum';
-import { ProductRepository } from '../../product/repository/product.repository';
+
 import { BidRepository } from '../../bid/repository/bid.repository';
 import { ChatService } from '../../chat/service/chat.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { NotificationService } from '../../notification/service/notification.service';
+import { ProductStatus } from '../../product/enum/product-status.enum';
+import { ProductRepository } from '../../product/repository/product.repository';
 
 @Injectable()
 export class AuctionCloseManager {

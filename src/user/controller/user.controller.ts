@@ -13,12 +13,14 @@ import {
   HttpCode,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UserService } from '../service/user.service';
+
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { UpdateUserRequest } from '../dto/update-user-request.dto';
-import { PasswordVerifyRequest } from '../dto/password-verify-request.dto';
+
 import { ChangePasswordRequest } from '../dto/change-password-request.dto';
+import { PasswordVerifyRequest } from '../dto/password-verify-request.dto';
+import { UpdateUserRequest } from '../dto/update-user-request.dto';
+import { UserService } from '../service/user.service';
 
 @Controller('api/users')
 export class UserController {

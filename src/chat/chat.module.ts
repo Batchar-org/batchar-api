@@ -1,20 +1,22 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ChatRoom } from './entities/chat-room.entity';
-import { ChatMessage } from './entities/chat-message.entity';
-import { ChatService } from './service/chat.service';
-import { ChatController } from './controller/chat.controller';
-import { UserModule } from '../user/user.module';
-import { ProductModule } from '../product/product.module';
-import { StorageModule } from '../common/storage/storage.module';
-import { WebSocketModule } from '../websocket/websocket.module';
+
 import { BlockModule } from '../block/block.module';
-import { User } from '../user/entities/user.entity';
+import { StorageModule } from '../common/storage/storage.module';
 import { Product } from '../product/entities/product.entity';
-import { ChatRoomRepository } from './repository/chat-room.repository';
-import { ChatMessageRepository } from './repository/chat-message.repository';
-import { UserRepository } from '../user/repository/user.repository';
+import { ProductModule } from '../product/product.module';
 import { ProductRepository } from '../product/repository/product.repository';
+import { User } from '../user/entities/user.entity';
+import { UserRepository } from '../user/repository/user.repository';
+import { UserModule } from '../user/user.module';
+import { WebSocketModule } from '../websocket/websocket.module';
+
+import { ChatController } from './controller/chat.controller';
+import { ChatMessage } from './entities/chat-message.entity';
+import { ChatRoom } from './entities/chat-room.entity';
+import { ChatMessageRepository } from './repository/chat-message.repository';
+import { ChatRoomRepository } from './repository/chat-room.repository';
+import { ChatService } from './service/chat.service';
 
 @Module({
   imports: [

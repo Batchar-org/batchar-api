@@ -1,15 +1,17 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../user/entities/user.entity';
+
 import { ChatMessage } from '../chat/entities/chat-message.entity';
+import { ChatMessageRepository } from '../chat/repository/chat-message.repository';
+import { ProductModule } from '../product/product.module';
 import { Report } from '../report/entities/report.entity';
-import { AdminService } from './service/admin.service';
+import { ReportRepository } from '../report/repository/report.repository';
+import { User } from '../user/entities/user.entity';
+import { UserRepository } from '../user/repository/user.repository';
+
 import { AdminController } from './controller/admin.controller';
 import { AdminGuard } from './guard/admin.guard';
-import { ProductModule } from '../product/product.module';
-import { UserRepository } from '../user/repository/user.repository';
-import { ChatMessageRepository } from '../chat/repository/chat-message.repository';
-import { ReportRepository } from '../report/repository/report.repository';
+import { AdminService } from './service/admin.service';
 
 @Module({
   imports: [

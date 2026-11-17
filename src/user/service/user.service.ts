@@ -1,16 +1,18 @@
 import { Injectable, forwardRef, Inject } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { UserRepository } from '../repository/user.repository';
-import { ProductRepository } from '../../product/repository/product.repository';
-import { BidRepository } from '../../bid/repository/bid.repository';
-import { WishRepository } from '../../wish/repository/wish.repository';
+
 import { RefreshTokenService } from '../../auth/service/refresh-token.service';
-import { StorageService } from '../../common/storage/service/storage.service';
+import { BidRepository } from '../../bid/repository/bid.repository';
 import { BusinessException } from '../../common/exceptions/business.exception';
-import { UserMeResponse } from '../dto/user-me-response.dto';
-import { UpdateUserRequest } from '../dto/update-user-request.dto';
-import { PasswordVerifyRequest } from '../dto/password-verify-request.dto';
+import { StorageService } from '../../common/storage/service/storage.service';
+import { ProductRepository } from '../../product/repository/product.repository';
+import { WishRepository } from '../../wish/repository/wish.repository';
+
 import { ChangePasswordRequest } from '../dto/change-password-request.dto';
+import { PasswordVerifyRequest } from '../dto/password-verify-request.dto';
+import { UpdateUserRequest } from '../dto/update-user-request.dto';
+import { UserMeResponse } from '../dto/user-me-response.dto';
+import { UserRepository } from '../repository/user.repository';
 
 @Injectable()
 export class UserService {

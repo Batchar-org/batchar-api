@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { StorageService } from '../service/storage.service';
+
 import { PresignedUrlRequest } from '../dto/presigned-url-request.dto';
+import { StorageService } from '../service/storage.service';
 
 @Controller('api/storage')
 export class StorageController {
